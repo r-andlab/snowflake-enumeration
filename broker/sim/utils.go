@@ -115,7 +115,7 @@ func (sim *ProxyPollSimulator) logDebugSnapshot() {
 	}
 	stats := sim.GetStats()
 	log.Printf(
-		"sim-debug fake_now=%s inflight_ipc=%d blocking_ipc=%d max_inflight=%d async_workers=%d/%d max_async=%d fake_timers=%d backpressure_pauses=%d steps=%d churn_cycles=%d churn_catchup=%d goroutines=%d max_goroutines=%d total_ipc=%d max_ipc_real=%s",
+		"sim-debug fake_now=%s inflight_ipc=%d blocking_ipc=%d max_inflight=%d fake_timers=%d backpressure_pauses=%d steps=%d churn_cycles=%d churn_catchup=%d goroutines=%d max_goroutines=%d total_ipc=%d max_ipc_real=%s",
 		sim.simulationNow().Format(time.RFC3339),
 		stats.InFlightIPCCalls,
 		stats.BlockingIPCCalls,
@@ -164,6 +164,13 @@ func (sl *stepLoop) drainAttackerResults() int {
 	}
 }
 
+func (sl *stepLoop) isMaliciousProxy(proxyType string, proxyID int) bool {
+	if !sl.maliciousProxyEnabled || proxyType != "standalone" {
+		return false
+	}
+	return proxyID == sl.maliciousProxyUnrestrictedID || proxyID == sl.maliciousProxyRestrictedID
+}
+
 // drainProxyResults drains and applies all pending proxy poll results.
 func (sl *stepLoop) drainProxyResults(now time.Time) int {
 	drained := 0
@@ -183,7 +190,15 @@ func (sl *stepLoop) drainProxyResults(now time.Time) int {
 			p.inFlight = false
 			sl.recordProxyPolledInWindow(result.proxyType, result.proxyID)
 			if result.err != nil {
-				p.nextPollAt = now.Add(sl.jitteredInterval(result.pollInterval))
+				if sl.isMaliciousProxy(result.proxyType, result.proxyID) {
+					p.nextPollAt = now
+				} else {
+					p.nextPollAt = now.Add(sl.jitteredInterval(result.pollInterval))
+				}
+				continue
+			}
+			if sl.isMaliciousProxy(result.proxyType, result.proxyID) {
+				p.nextPollAt = now
 				continue
 			}
 			if result.proxyType == "standalone" {
@@ -273,9 +288,11 @@ func (sl *stepLoop) drainClientResults(now time.Time) int {
 		matched := result.matched
 		sid := result.sid
 		reason := result.reason
-		proxyType, _, haveProxyType := parseProxyIDFromSession(sid)
+		proxyType, proxyID, haveProxyType := parseProxyIDFromSession(sid)
 		if matched {
 			sl.recordMinuteClientNATStats(natKey, false)
+			// Denominator for minute-malicious-proxy: total new successful connections created in this minute.
+			sl.maliciousConnTotalSum++
 			if haveProxyType {
 				sl.clientMatchesByType[proxyType]++
 			}
@@ -283,6 +300,19 @@ func (sl *stepLoop) drainClientResults(now time.Time) int {
 			sl.minuteMatchCountByNAT[natKey]++
 			sl.finalizeRetryAttempt(c)
 			c.retryStreak = 0
+			if sl.isMaliciousProxy(proxyType, proxyID) {
+				if proxyID == sl.maliciousProxyUnrestrictedID {
+					sl.maliciousConnSumUnrestricted++
+				} else {
+					sl.maliciousConnSumRestricted++
+				}
+				if sid != "" {
+					sl.sim.unregisterConnection(sid)
+				}
+				c.nextPollAt = now.Add(sl.clientInterval)
+				c.pollCounter++
+				continue
+			}
 			connectionDuration := sl.sampleConnectionDuration()
 			disconnectAt := now.Add(connectionDuration)
 			if sid != "" {

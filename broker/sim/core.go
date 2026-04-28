@@ -383,6 +383,21 @@ func (sim *ProxyPollSimulator) getClientState(clientID int) *clientState {
 	return state
 }
 
+// countActiveConnectionsToProxy returns how many live sessions are registered for this proxy identity.
+func (sim *ProxyPollSimulator) countActiveConnectionsToProxy(proxyType string, proxyID int) int {
+	sim.connectionLock.Lock()
+	defer sim.connectionLock.Unlock()
+	pkey := proxyConnKey(proxyType, proxyID)
+	return len(sim.proxySessions[pkey])
+}
+
+// countTotalActiveConnections returns the number of registered sessions (all proxies).
+func (sim *ProxyPollSimulator) countTotalActiveConnections() int {
+	sim.connectionLock.Lock()
+	defer sim.connectionLock.Unlock()
+	return len(sim.connections)
+}
+
 // getConnectedClients returns client IDs connected to a given proxy identity.
 func (sim *ProxyPollSimulator) getConnectedClients(proxyType string, proxyID int) []int {
 	sim.connectionLock.Lock()

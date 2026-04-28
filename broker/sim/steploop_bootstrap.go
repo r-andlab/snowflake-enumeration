@@ -22,6 +22,7 @@ func (sl *stepLoop) bootstrap() {
 		sl.iptPollInterval,
 		sl.proxyPollJitterPct,
 		sl.churnRateBase*100.0,
+		defaultStandaloneChurnK,
 		sl.spreadHourlyChurn,
 		sl.proxyCountScale,
 		sl.standaloneUnrestricted,
@@ -59,6 +60,43 @@ func (sl *stepLoop) bootstrap() {
 	sl.addInitialProxyType("webext", webextInit, sl.webextPollInterval)
 	sl.addInitialProxyType("iptproxy", iptInit, sl.iptPollInterval)
 	sl.addClients(sl.clientTargetCount)
+	sl.addMaliciousProxies()
+}
+
+// addMaliciousProxies registers two standalone malicious proxies (unrestricted + restricted). Each uses the
+// same async pollProxy path (one goroutine per in-flight poll) and repolls every simulated step.
+func (sl *stepLoop) addMaliciousProxies() {
+	if !sl.maliciousProxyEnabled {
+		return
+	}
+	pt := "standalone"
+	interval := sl.standalonePollInterval
+
+	addOne := func(nat string) int {
+		id := sl.nextProxyID[pt]
+		sl.nextProxyID[pt]++
+		gp := &ghostProxy{
+			proxyID:       id,
+			proxyType:     pt,
+			standaloneNAT: nat,
+			pollInterval:  interval,
+			nextPollAt:    sl.startTime,
+			malicious:     true,
+		}
+		sl.proxies[pt][id] = gp
+		FakeTimeStepMu.RLock()
+		sl.sim.recordProxyStart(pt, id)
+		FakeTimeStepMu.RUnlock()
+		return id
+	}
+
+	sl.maliciousProxyUnrestrictedID = addOne("unrestricted")
+	sl.maliciousProxyRestrictedID = addOne("restricted")
+	log.Printf(
+		"malicious proxies: enabled standalone-%d (unrestricted) and standalone-%d (restricted); poll every simulated step, immediate disconnect on match",
+		sl.maliciousProxyUnrestrictedID,
+		sl.maliciousProxyRestrictedID,
+	)
 }
 
 func (sl *stepLoop) addInitialStandalone(count int, natType string) {

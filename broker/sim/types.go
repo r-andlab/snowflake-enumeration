@@ -22,6 +22,7 @@ type ghostProxy struct {
 	nextPollAt    time.Time
 	pollCounter   int
 	inFlight      bool
+	malicious     bool // if true, never removed by churn/target shrink; polls every simulated step
 }
 
 // ghostClient represents a client in the simulation.
@@ -173,6 +174,15 @@ type stepLoop struct {
 	// Sum of totalRetriesInAttempt at each successful match and match counts (avg retries per successful match per NAT).
 	minuteSumRetriesBeforeMatchByNAT map[string]int64
 	minuteMatchCountByNAT            map[string]int64
+
+	// Optional malicious proxies (see SNOWFLAKE_SIM_MALICIOUS_PROXY): two standalone proxies — one
+	// unrestricted NAT, one restricted — each polls every step and tears down client sessions on match.
+	maliciousProxyEnabled        bool
+	maliciousProxyUnrestrictedID int     // standalone id; -1 if disabled
+	maliciousProxyRestrictedID   int     // standalone id; -1 if disabled
+	maliciousConnSumUnrestricted float64 // match events to unrestricted malicious proxy in the current minute window
+	maliciousConnSumRestricted   float64 // match events to restricted malicious proxy in the current minute window
+	maliciousConnTotalSum        int64   // total new successful connections (all proxies) in current minute window
 }
 
 // IPCInterface is the broker IPC interface used by the simulator (avoids importing broker main).

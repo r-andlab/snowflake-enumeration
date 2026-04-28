@@ -98,6 +98,7 @@ func (sl *stepLoop) flushAndClearMinuteProxyPollSet(now time.Time) {
 			"minute-coverage t=%s unique_proxies_polled=0 unique_not_found_by_attacker=0 pct_not_found_by_attacker=0.0000",
 			ts,
 		)
+		sl.flushMaliciousProxyMinute(ts)
 		return
 	}
 
@@ -144,6 +145,35 @@ func (sl *stepLoop) flushAndClearMinuteProxyPollSet(now time.Time) {
 			len(ip), ipNF, minuteCoveragePct(len(ip), ipNF),
 		)
 	}
+	sl.flushMaliciousProxyMinute(ts)
+}
+
+func (sl *stepLoop) flushMaliciousProxyMinute(ts string) {
+	if !sl.maliciousProxyEnabled || sl.maliciousProxyUnrestrictedID < 0 || sl.maliciousProxyRestrictedID < 0 {
+		sl.maliciousConnSumUnrestricted = 0
+		sl.maliciousConnSumRestricted = 0
+		sl.maliciousConnTotalSum = 0
+		return
+	}
+	var pctU, pctR float64
+	if sl.maliciousConnTotalSum > 0 {
+		pctU = sl.maliciousConnSumUnrestricted / float64(sl.maliciousConnTotalSum)
+		pctR = sl.maliciousConnSumRestricted / float64(sl.maliciousConnTotalSum)
+	}
+	log.Printf(
+		"minute-malicious-proxy t=%s standalone-%d (unrestricted) pct_match_events_vs_new_connections=%.6f match_events=%.0f standalone-%d (restricted) pct_match_events_vs_new_connections=%.6f match_events=%.0f total_new_connections_in_minute=%d",
+		ts,
+		sl.maliciousProxyUnrestrictedID,
+		pctU,
+		sl.maliciousConnSumUnrestricted,
+		sl.maliciousProxyRestrictedID,
+		pctR,
+		sl.maliciousConnSumRestricted,
+		sl.maliciousConnTotalSum,
+	)
+	sl.maliciousConnSumUnrestricted = 0
+	sl.maliciousConnSumRestricted = 0
+	sl.maliciousConnTotalSum = 0
 }
 
 func countNotFoundByNAT(sl *stepLoop, natType string, keys []string) int {
@@ -165,5 +195,8 @@ func (sl *stepLoop) FlushPartialMinuteCoverageOnShutdown(now time.Time) {
 	if len(sl.minuteClientAttemptsByNAT) > 0 || len(sl.minuteClientRetriesByNAT) > 0 ||
 		len(sl.minuteSumRetriesBeforeMatchByNAT) > 0 || len(sl.minuteMatchCountByNAT) > 0 {
 		sl.flushMinuteClientNATStats(now.UTC().Format(time.RFC3339))
+	}
+	if sl.maliciousConnTotalSum > 0 || sl.maliciousConnSumUnrestricted != 0 || sl.maliciousConnSumRestricted != 0 {
+		sl.flushMaliciousProxyMinute(now.UTC().Format(time.RFC3339))
 	}
 }

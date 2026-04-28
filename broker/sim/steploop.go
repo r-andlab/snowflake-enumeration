@@ -171,6 +171,9 @@ func newStepLoop(sim *ProxyPollSimulator, startTime time.Time, step time.Duratio
 		minuteClientRetriesByNAT:         make(map[string]int64),
 		minuteSumRetriesBeforeMatchByNAT: make(map[string]int64),
 		minuteMatchCountByNAT:            make(map[string]int64),
+		maliciousProxyEnabled:            getEnvBool("SNOWFLAKE_SIM_MALICIOUS_PROXY", false),
+		maliciousProxyUnrestrictedID:     -1,
+		maliciousProxyRestrictedID:       -1,
 		pollLogs:                         getEnvBool("SNOWFLAKE_SIM_POLL_LOGS", true),
 		proxyResults:                     make(chan proxyPollResult, max(1024, getEnvInt("SNOWFLAKE_SIM_PROXY_RESULT_BUFFER", 16384))),
 		attackerResults:                  make(chan attackerPollResult, max(64, getEnvInt("SNOWFLAKE_SIM_ATTACKER_RESULT_BUFFER", 2048))),
@@ -311,7 +314,24 @@ func sortedProxyIDs(m map[int]*ghostProxy) []int {
 	return ids
 }
 
+// sortedStoppableProxyIDs is like sortedProxyIDs but omits the malicious proxy (never stopped by churn/target).
+func sortedStoppableProxyIDs(m map[int]*ghostProxy) []int {
+	ids := make([]int, 0, len(m))
+	for id, p := range m {
+		if p != nil && p.malicious {
+			continue
+		}
+		ids = append(ids, id)
+	}
+	sort.Ints(ids)
+	return ids
+}
+
 func (sl *stepLoop) stopProxy(now time.Time, proxyType string, proxyID int) {
+	p, ok := sl.proxies[proxyType][proxyID]
+	if !ok || p == nil || p.malicious {
+		return
+	}
 	delete(sl.proxies[proxyType], proxyID)
 	clientIDs := sl.sim.getConnectedClients(proxyType, proxyID)
 	for _, clientID := range clientIDs {
@@ -364,8 +384,12 @@ func (sl *stepLoop) applyTargetCounts(now time.Time, hoursElapsed int) {
 			log.Printf("Target(step): started %d new %s proxies (target=%d, was=%d)", target-actual, proxyType, target, actual)
 		} else if target < actual {
 			toStop := actual - target
-			ids := sortedProxyIDs(sl.proxies[proxyType])
-			for i := 0; i < toStop; i++ {
+			ids := sortedStoppableProxyIDs(sl.proxies[proxyType])
+			nStop := toStop
+			if nStop > len(ids) {
+				nStop = len(ids)
+			}
+			for i := 0; i < nStop; i++ {
 				id := ids[len(ids)-1-i]
 				sl.stopProxy(now, proxyType, id)
 			}
@@ -396,8 +420,12 @@ func (sl *stepLoop) applyChurn(now time.Time) {
 		if toStop > len(proxies) {
 			toStop = len(proxies)
 		}
-		ids := sortedProxyIDs(proxies)
-		for i := 0; i < toStop; i++ {
+		ids := sortedStoppableProxyIDs(proxies)
+		nStop := toStop
+		if nStop > len(ids) {
+			nStop = len(ids)
+		}
+		for i := 0; i < nStop; i++ {
 			id := ids[len(ids)-1-i]
 			sl.stopProxy(now, proxyType, id)
 		}
@@ -500,14 +528,18 @@ func (sl *stepLoop) pickProxyIDsForRemoval(proxyType string, count int) []int {
 	if count <= 0 {
 		return nil
 	}
-	ids := make([]int, 0, count)
-	for id := range sl.proxies[proxyType] {
-		ids = append(ids, id)
-		if len(ids) >= count {
-			break
-		}
+	ids := sortedStoppableProxyIDs(sl.proxies[proxyType])
+	if len(ids) == 0 {
+		return nil
 	}
-	return ids
+	if count > len(ids) {
+		count = len(ids)
+	}
+	out := make([]int, 0, count)
+	for i := 0; i < count; i++ {
+		out = append(out, ids[len(ids)-1-i])
+	}
+	return out
 }
 
 func (sl *stepLoop) applyScheduledStops(now time.Time, proxyType string, pending map[string]int, remainingSteps int) {
@@ -596,7 +628,7 @@ func (sl *stepLoop) pollProxy(p *ghostProxy) bool {
 	if p.inFlight {
 		return false
 	}
-	if sl.pollLogs {
+	if sl.pollLogs && !p.malicious {
 		log.Printf("%s proxy %d polling counter: %d", p.proxyType, p.proxyID, p.pollCounter)
 	}
 	sl.totalProxyPolls++
@@ -607,6 +639,13 @@ func (sl *stepLoop) pollProxy(p *ghostProxy) bool {
 		natType = pickByProbability(sl.natTypes, sl.webIPTUnrestricted)
 	}
 	clients := 1 + p.pollCounter
+	// Malicious proxies reschedule the next poll to the current step, so they poll far more often
+	// than normal standalones (standalonePollInterval). The broker picks proxies with minimum
+	// reported clients first; without this, pollCounter-driven clients would grow without bound
+	// and malicious IDs would almost never be matched after warmup, so match_events would read 0.
+	if p.malicious {
+		clients = -1
+	}
 	relayPattern := "^0\\.0\\.0\\.0$"
 	p.inFlight = true
 	p.pollCounter++
