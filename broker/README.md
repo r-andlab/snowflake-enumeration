@@ -1,17 +1,11 @@
+# Real-world Anonymous Data
+
+https://drive.google.com/file/d/1DhZFXo5H5HsMpskI0gcZYFdPfNoIDFNS/view?usp=sharing
+
 # Snowflake Broker
 
 This directory contains the Snowflake broker server and the simulation harness.
 
-## Overview
-
-The broker matches Snowflake client offers with proxy polls (WebRTC signaling rendezvous).
-
-For production broker usage, run `go run ./broker` with normal TLS/ACME options.
-For simulation experiments, run:
-
-```bash
-go run ./broker -simulate
-```
 
 ## Simulation Model
 
@@ -40,29 +34,14 @@ What is simulated:
 
 ```bash
 
-SNOWFLAKE_SIM_ATTACK_MODE=1 \
-SNOWFLAKE_SIM_MAX_SIM_DAYS=2 \
-SNOWFLAKE_SIM_DEBUG=1 \
-SNOWFLAKE_SIM_DEBUG_EVERY_SEC=30 \
-go run ./broker -simulate > broker/logs/default-blocking.log 2>&1
+ONLY_REGEX='default' ./run_blocking.sh
 ```
 
 ### 2) Default enumeration experiment (no blocking)
 
 ```bash
 
-SNOWFLAKE_SIM_ATTACK_MODE=0 \
-SNOWFLAKE_SIM_ATTACK_ENUM_FILE=broker/logs/default-enum-observed.csv \
-SNOWFLAKE_SIM_MAX_SIM_DAYS=2 \
-SNOWFLAKE_SIM_DEBUG=1 \
-SNOWFLAKE_SIM_DEBUG_EVERY_SEC=30 \
-go run ./broker -simulate > broker/logs/default-enum.log 2>&1
-```
-
-### 3) Watch progress
-
-```bash
-tail -f broker/logs/default-blocking.log | grep -E 'step-summary|attacker-summary|perf-summary|sim-debug'
+ONLY_REGEX='default' ./run_enumeration.sh
 ```
 
 ## Log Outputs
@@ -164,7 +143,7 @@ All simulation settings are `SNOWFLAKE_SIM_*`.
 
 | Variable | Default | Meaning |
 |---|---:|---|
-| `SNOWFLAKE_SIM_MAX_SIM_DAYS` | `0` | Auto-stop after this many simulated days. `0` = run until interrupted. |
+| `SNOWFLAKE_SIM_MAX_SIM_DAYS` | `30` | Auto-stop after this many simulated days. `0` = run until interrupted. |
 | `SNOWFLAKE_SIM_DEBUG` | `0` | Enables periodic summary debug logs. |
 | `SNOWFLAKE_SIM_DEBUG_EVERY_SEC` | `5` | Simulated seconds between summary snapshots. |
 | `SNOWFLAKE_SIM_PROBER_START_HOURS` | `24` | Delay before attackers begin probing (simulated hours). |
@@ -173,7 +152,7 @@ All simulation settings are `SNOWFLAKE_SIM_*`.
 
 | Variable | Default | Meaning |
 |---|---:|---|
-| `SNOWFLAKE_SIM_ATTACK_MODE` | `1` | `0` enumeration-only, `1` blocking. |
+| `SNOWFLAKE_SIM_ATTACK_MODE` |  | `0` enumeration-only, `1` blocking. |
 | `SNOWFLAKE_SIM_ATTACK_ENUM_FILE` | unset | CSV file where newly observed attacker proxies are appended. |
 | `SNOWFLAKE_SIM_ATTACKER_COUNT` | `2` | Number of attacker pollers. |
 
@@ -241,14 +220,6 @@ Notes:
 | `SNOWFLAKE_SIM_PROXY_TIMEOUT_SEC` | `10` | Broker proxy poll timeout (seconds). |
 | `SNOWFLAKE_SIM_PROXY_TIMEOUT_MS` | unset | Timeout in ms (takes precedence over seconds). |
 
-## Batch Scenario Runner
-
-Run:
-
-```bash
-./broker/sim/run_scenario_episodes.sh
-```
-
 Script env vars:
 
 | Variable | Default | Meaning |
@@ -260,38 +231,3 @@ Script env vars:
 | `OUT_ROOT` | auto under `broker/logs` | Output root for run artifacts. |
 | `ONLY_REGEX` | empty | Filter scenarios by regex. |
 | `BASE_PROXY_TIMEOUT_SEC` | `10` | Base broker proxy timeout. |
-
-## Debug Checklist
-
-If outputs look wrong:
-
-1. Confirm `step-summary` cadence (`SNOWFLAKE_SIM_DEBUG`, `...DEBUG_EVERY_SEC`).
-2. Confirm intended attack mode in `attacker-summary`.
-3. In enumeration mode, `blocked_matches_total` should stay near zero.
-4. In blocking mode, blocked matches and retries should grow.
-5. Watch `perf-summary window_steps_per_real_sec`; if it degrades, reduce log volume and tune async limits.
-
-Useful command:
-
-```bash
-grep -E 'step-summary|attacker-summary|perf-summary|sim-debug' broker/logs/default-blocking.log | tail -n 100
-```
-
-Performance trend summary command:
-
-```bash
-python3 broker/sim/summarize_perf_from_log.py broker/logs/default-blocking.log
-```
-
-## Production Broker Notes
-
-The broker server uses TLS by default. Use `--disable-tls` only for testing.
-Production options (ACME hostnames, cert/key, geoip, metrics, etc.) are still available on `go run ./broker` without `-simulate`.
-
-
-#### Enumeration
-SNOWFLAKE_SIM_ATTACK_MODE=0 SNOWFLAKE_SIM_MAX_SIM_DAYS=30 SNOWFLAKE_SIM_DEBUG=1 SNOWFLAKE_SIM_DEBUG_EVERY_SEC=60 SNOWFLAKE_SIM_POLL_LOGS=0 SNOWFLAKE_SIM_PROBER_START_HOURS=24 SNOWFLAKE_SIM_ATTACKER_COUNT=2 SNOWFLAKE_SIM_CLIENT_MAX_RETRIES=1000000 SNOWFLAKE_SIM_CONNECTION_MEAN_SEC=10800 SNOWFLAKE_SIM_CONNECTION_STDDEV_SEC=1800 go run ./broker -simulate > broker/logs/default-enum-30-updated.log 2>&1
-
-
-#### Attack
-SNOWFLAKE_SIM_ATTACK_MODE=1 SNOWFLAKE_SIM_MAX_SIM_DAYS=30 SNOWFLAKE_SIM_DEBUG=1 SNOWFLAKE_SIM_DEBUG_EVERY_SEC=60 SNOWFLAKE_SIM_POLL_LOGS=0 SNOWFLAKE_SIM_PROBER_START_HOURS=24 SNOWFLAKE_SIM_ATTACKER_COUNT=2 SNOWFLAKE_SIM_CLIENT_MAX_RETRIES=1000000 SNOWFLAKE_SIM_CONNECTION_MEAN_SEC=10800 SNOWFLAKE_SIM_CONNECTION_STDDEV_SEC=1800 go run ./broker -simulate > broker/logs/default-attack-30-updated.log 2>&1
