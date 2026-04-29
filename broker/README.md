@@ -1,7 +1,3 @@
-# Real-world Anonymous Data
-
-https://drive.google.com/file/d/1DhZFXo5H5HsMpskI0gcZYFdPfNoIDFNS/view?usp=sharing
-
 # Snowflake Broker
 
 This directory contains the Snowflake broker server and the simulation harness.
