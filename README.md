@@ -1,3 +1,7 @@
+### Results
+We put the real-world restuls at anonymous Google Drive:
+https://drive.google.com/file/d/1M5MKXQfmAF_Y80CkDxZOStkmyvISNrGJ/view?usp=drive_link
+
 ### Modified Tor-Snowflake
 
 This repository redefines the Tor-Snowflake Command Line Client, originally available at https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake
