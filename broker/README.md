@@ -66,4 +66,4 @@ Typical lines to inspect:
 
 
 ## Data
-The malicious proxy results are available along with our other simulation results at [https://drive.google.com/file/d/1A2POOBanin-ubv342_uUCZxZr6L0Mdsj/view?usp=drive_link](https://drive.google.com/file/d/1A2POOBanin-ubv342_uUCZxZr6L0Mdsj/view?usp=drive_link)
+The malicious proxy results are available at data directory
