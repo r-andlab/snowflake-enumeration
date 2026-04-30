@@ -1,5 +1,5 @@
 
-# Snowflake Broker
+# Snowflake Simulation
 
 This directory contains the Snowflake broker server and the simulation harness.
 
