@@ -227,5 +227,4 @@ Script env vars:
 | `BASE_PROXY_TIMEOUT_SEC` | `10` | Base broker proxy timeout. |
 
 # Simulation Data
-
-https://drive.google.com/file/d/1A2POOBanin-ubv342_uUCZxZr6L0Mdsj/view?usp=drive_link
+Our simualation logs are available (subject to file size constraints) in `broker/data/`
