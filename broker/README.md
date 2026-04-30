@@ -41,6 +41,13 @@ ONLY_REGEX='default' ./run_blocking.sh
 ONLY_REGEX='default' ./run_enumeration.sh
 ```
 
+### 3) Run a specific setting
+
+```bash
+
+ONLY_REGEX='xx' ./run_enumeration.sh | ./run_blocking.sh
+```
+
 ## Log Outputs
 
 Main summary logs:
