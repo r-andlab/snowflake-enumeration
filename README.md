@@ -24,7 +24,6 @@ The main behavioral changes are:
 Note: We caution against using the prober heavily against the live Snowflake broker, as it may cause technical disruptions (see paper for safety details). 
 
 ### Results
-Aggregate real-world measurement data from our 48-day enumeration study is available at:
-https://drive.google.com/file/d/1M5MKXQfmAF_Y80CkDxZOStkmyvISNrGJ/view?usp=drive_link
+Aggregate real-world measurement data from our 48-day enumeration study is available at /data here
 
 Raw Snowflake IP addresses and keyed hashes are withheld to protect the privacy of volunteer proxy operators. 
