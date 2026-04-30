@@ -1,5 +1,3 @@
-# Simulation Data
-https://drive.google.com/file/d/1x3bwvvrnkVifQ8wSDX5y7K3BriO2Wu9R/view?usp=drive_link
 
 # Snowflake Broker
 
@@ -164,13 +162,12 @@ All simulation settings are `SNOWFLAKE_SIM_*`.
 | `SNOWFLAKE_SIM_CLIENT_POLL_JITTER_SEC` | `3600` | Random jitter window (seconds) applied around matched-client wait to avoid synchronized poll bursts. |
 | `SNOWFLAKE_SIM_CLIENT_SPAWN_SPREAD_SEC` | `3600` | Spread window for first poll of newly spawned clients (hourly replenish and immediate retry-limit respawn). |
 | `SNOWFLAKE_SIM_CLIENT_IMMEDIATE_RESPAWN` | `1` | If enabled, a client that hits retry limit is replaced immediately with a fresh client ID (first poll randomized by `CLIENT_SPAWN_SPREAD_SEC`). |
-| `SNOWFLAKE_SIM_CLIENT_MAX_RETRIES` | `5` | Max retries per client before that client is closed. |
+| `SNOWFLAKE_SIM_CLIENT_MAX_RETRIES` | `1000000` | Max retries per client before that client is closed. |
 | `SNOWFLAKE_SIM_MATCHED_CLIENT_WAIT_SEC` | `10800` | Wait after successful client match (default 3h). |
 
 Notes:
 
 - Client retry interval is fixed to 3 simulated seconds in code.
-- When retry limit is hit, that client closes. If `SNOWFLAKE_SIM_CLIENT_IMMEDIATE_RESPAWN=1`, replacement happens immediately; otherwise hourly replenishment (if enabled) restores the target population.
 - `step-summary` includes no-match reason counters: `client_nomatch_reasons no_proxies=... timed_out=... blocked=... other=...`.
 
 ### Proxy polling / NAT mix / capacity
@@ -230,3 +227,7 @@ Script env vars:
 | `OUT_ROOT` | auto under `broker/logs` | Output root for run artifacts. |
 | `ONLY_REGEX` | empty | Filter scenarios by regex. |
 | `BASE_PROXY_TIMEOUT_SEC` | `10` | Base broker proxy timeout. |
+
+# Real-world Anonymous Data
+
+https://drive.google.com/file/d/1DhZFXo5H5HsMpskI0gcZYFdPfNoIDFNS/view?usp=sharing
