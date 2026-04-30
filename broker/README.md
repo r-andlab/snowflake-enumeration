@@ -1,4 +1,6 @@
-# Snowflake Broker (Malicious Runner)
+# Snowflake Broker Simulation (Malicious Proxy)
+
+This repository changes our Snowflake simulator, available at [https://anonymous.4open.science/r/anonymous-snowflake-simulation-FF8F/broker/README.md](https://anonymous.4open.science/r/anonymous-snowflake-simulation-FF8F/broker/README.md) for the malicious proxy use case (Section 6 in paper). This repository only supports the malicious proxy use case.  
 
 This README only covers `run_malicious.sh`.
 
@@ -63,3 +65,5 @@ Typical lines to inspect:
 - `step-summary-broker-heaps`
 
 
+## Data
+The malicious proxy results are available along with our other simulation results at [https://drive.google.com/file/d/1A2POOBanin-ubv342_uUCZxZr6L0Mdsj/view?usp=drive_link](https://drive.google.com/file/d/1A2POOBanin-ubv342_uUCZxZr6L0Mdsj/view?usp=drive_link)
