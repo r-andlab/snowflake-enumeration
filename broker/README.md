@@ -219,6 +219,6 @@ Script env vars:
 | `ONLY_REGEX` | empty | Filter scenarios by regex. |
 | `BASE_PROXY_TIMEOUT_SEC` | `10` | Base broker proxy timeout. |
 
-# Real-world Anonymous Data
+# Simulation Data
 
-https://drive.google.com/file/d/1DhZFXo5H5HsMpskI0gcZYFdPfNoIDFNS/view?usp=sharing
+https://drive.google.com/file/d/1x3bwvvrnkVifQ8wSDX5y7K3BriO2Wu9R/view?usp=drive_link
