@@ -1,7 +1,7 @@
 
 # Snowflake Simulation
 
-This directory contains the Snowflake broker server and the simulation harness.
+This directory contains the Snowflake broker server, the simulation harness and the simulation raw logs for analysis in directory of /data.
 
 
 ## Simulation Model
