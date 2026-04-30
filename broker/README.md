@@ -116,15 +116,6 @@ This section is the fastest path for a new developer.
 - `broker/sim/stats.go`
   - `Stop()`, runtime stats aggregation, printable stats.
 
-### Plot/analysis helpers
-
-- `broker/sim/plot_summary_metrics_from_log.py`
-- `broker/sim/plot_polling_from_log.py`
-- `broker/sim/plot_enumeration_coverage_from_log.py`
-- `broker/sim/plot_enumeration_absolute_from_log.py`
-- `broker/sim/summarize_perf_from_log.py`
-  - Prints early/mid/late runtime snapshots from `perf-summary` + `sim-debug` lines.
-  - Useful to verify whether `window_steps_per_real_sec` is degrading while `inflight_ipc`, `goroutines`, or `fake_timers` are growing.
 
 ### Scenario automation
 
