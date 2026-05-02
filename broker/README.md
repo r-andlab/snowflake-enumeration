@@ -29,7 +29,6 @@ Single episode / short run:
 
 - Enables malicious standalone proxies (`SNOWFLAKE_SIM_MALICIOUS_PROXY=1`)
 - Uses no attackers (`SNOWFLAKE_SIM_ATTACKER_COUNT=0`)
-- Uses equal poll interval for all proxy types (currently `240s`)
 - Starts malicious proxies at simulated `+24h`
 
 ## Key overrides
