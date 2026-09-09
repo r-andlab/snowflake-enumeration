@@ -10,7 +10,7 @@ For the details of each part:
 This directory contains the Snowflake broker server, the simulation harness and the simulation raw logs for analysis in directory of /data.
 
 
-## Simulation Model
+### Simulation Model
 
 The current simulator is a **step-loop model**:
 
@@ -31,30 +31,30 @@ What is simulated:
   - `SNOWFLAKE_SIM_ATTACK_MODE=0`: enumeration only (record observed proxies, no blocking).
   - `SNOWFLAKE_SIM_ATTACK_MODE=1`: blocking mode.
 
-## Quick Start
+### Quick Start
 
-### 1) Default blocking experiment
+#### 1) Default blocking experiment
 
 ```bash
 
 ONLY_REGEX='default' ./run_blocking.sh
 ```
 
-### 2) Default enumeration experiment (no blocking)
+#### 2) Default enumeration experiment (no blocking)
 
 ```bash
 
 ONLY_REGEX='default' ./run_enumeration.sh
 ```
 
-### 3) Run a specific setting
+#### 3) Run a specific setting
 
 ```bash
 
 ONLY_REGEX='xx' ./run_enumeration.sh | ./run_blocking.sh
 ```
 
-## Log Outputs
+### Log Outputs
 
 Main summary logs:
 
@@ -71,11 +71,11 @@ High-volume logs:
 
 For long runs, keep poll/event logs low and use summary logs.
 
-## Code Structure
+### Code Structure
 
 This section is the fastest path for a new developer.
 
-### Entry path
+#### Entry path
 
 1. `broker/proxy_poll_simulator.go`
 - Handles `-simulate` startup.
@@ -90,7 +90,7 @@ This section is the fastest path for a new developer.
 - Runs `runStep()` once per simulated second.
 - Emits periodic `step-summary`, `attacker-summary`, `perf-summary`, `sim-debug`.
 
-### State + core behavior
+#### State + core behavior
 
 - `broker/sim/steploop.go`
   - Ghost entity state (`ghostClient`, `ghostProxy`, `ghostAttacker`).
@@ -130,17 +130,17 @@ This section is the fastest path for a new developer.
   - `Stop()`, runtime stats aggregation, printable stats.
 
 
-### Scenario automation
+#### Scenario automation
 
 - `broker/sim/run_scenario_episodes.sh`
   - Runs multiple scenario presets and episodes.
   - Writes logs under `broker/logs/...`.
 
-## Simulation Flags (Environment Variables)
+### Simulation Flags (Environment Variables)
 
 All simulation settings are `SNOWFLAKE_SIM_*`.
 
-### Core control
+#### Core control
 
 | Variable | Default | Meaning |
 |---|---:|---|
@@ -149,7 +149,7 @@ All simulation settings are `SNOWFLAKE_SIM_*`.
 | `SNOWFLAKE_SIM_DEBUG_EVERY_SEC` | `5` | Simulated seconds between summary snapshots. |
 | `SNOWFLAKE_SIM_PROBER_START_HOURS` | `24` | Delay before attackers begin probing (simulated hours). |
 
-### Attack / enumeration
+#### Attack / enumeration
 
 | Variable | Default | Meaning |
 |---|---:|---|
@@ -157,7 +157,7 @@ All simulation settings are `SNOWFLAKE_SIM_*`.
 | `SNOWFLAKE_SIM_ATTACK_ENUM_FILE` | unset | CSV file where newly observed attacker proxies are appended. |
 | `SNOWFLAKE_SIM_ATTACKER_COUNT` | `2` | Number of attacker pollers. |
 
-### Client behavior
+#### Client behavior
 
 | Variable | Default | Meaning |
 |---|---:|---|
@@ -174,7 +174,7 @@ Notes:
 - Client retry interval is fixed to 3 simulated seconds in code.
 - `step-summary` includes no-match reason counters: `client_nomatch_reasons no_proxies=... timed_out=... blocked=... other=...`.
 
-### Proxy polling / NAT mix / capacity
+#### Proxy polling / NAT mix / capacity
 
 | Variable | Default | Meaning |
 |---|---:|---|
@@ -190,14 +190,14 @@ Notes:
 | `SNOWFLAKE_SIM_STEP_YIELD_ROUNDS` | `1` | Scheduler yield rounds per simulation step. |
 | `SNOWFLAKE_SIM_STEP_SETTLE_ROUNDS` | `0` | Extra `Gosched+drain` rounds at end of each step to flush completed async proxy results before advancing simulated time. |
 
-### Churn
+#### Churn
 
 | Variable | Default | Meaning |
 |---|---:|---|
 | `SNOWFLAKE_SIM_CHURN_RATE_PCT` | `2.7` | Base hourly churn rate. |
 | `SNOWFLAKE_SIM_SPREAD_HOURLY_CHURN` | `1` | If enabled, applies hourly target/churn adjustments gradually across the hour. If `0`, uses legacy batch-at-hour-boundary behavior (can cause client poll spikes near `:00/:01`). |
 
-### Logging and instrumentation
+#### Logging and instrumentation
 
 | Variable | Default | Meaning |
 |---|---:|---|
@@ -213,7 +213,7 @@ Notes:
 - `max_inflight`, `max_async`, `max_goroutines`: observed peaks.
 - `total_ipc`, `slow_ipc`: cumulative IPC workload.
 
-### Broker poll timeout (used by simulation)
+#### Broker poll timeout (used by simulation)
 
 | Variable | Default | Meaning |
 |---|---:|---|
@@ -232,16 +232,16 @@ Script env vars:
 | `ONLY_REGEX` | empty | Filter scenarios by regex. |
 | `BASE_PROXY_TIMEOUT_SEC` | `10` | Base broker proxy timeout. |
 
-## Simulation Data
+### Simulation Data
 Our simualation logs are available (subject to file size constraints) in `broker/data/`
 
 
 
-# Real-World Enumeration
+## Real-World Enumeration
 
 This repository redefines the Tor-Snowflake Command Line Client, originally available at https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake, for the purposes of our real-world enumeration experiment. 
 
-### Modifications to Snowflake Client
+#### Modifications to Snowflake Client
 
 The main behavioral changes are:
 
@@ -250,7 +250,7 @@ The main behavioral changes are:
 - `snowflake/client/prober.go` was added as a standalone probing loop that repeatedly creates WebRTC offers, contacts the broker, triggers ASN logging, closes the peer connection, and repeats.
 - Supporting client changes export broker-channel construction, refine WebRTC peer setup, and isolate per-connection client configuration in the SOCKS accept loop.
 
-### Running the Prober
+#### Running the Prober
 1. To use the prober, hardcode the client NAT setting first at `snowflake/client/lib/rendezvous.go#L396` 
 
 2. Move to client directory: `cd snowflake/client/`
@@ -261,19 +261,19 @@ The main behavioral changes are:
 
 Note: We caution against using the prober heavily against the live Snowflake broker, as it may cause technical disruptions (see paper for safety details). 
 
-### Results
+#### Results
 Aggregate real-world measurement data from our 48-day enumeration study is available at /data here
 
 Raw Snowflake IP addresses and keyed hashes are withheld to protect the privacy of volunteer proxy operators. 
 
 
-# Snowflake Broker Simulation (Malicious Proxy)
+## Snowflake Broker Simulation (Malicious Proxy)
 
 This repository changes our Snowflake simulator, available at [https://anonymous.4open.science/r/anonymous-snowflake-simulation-FF8F/broker/README.md](https://anonymous.4open.science/r/anonymous-snowflake-simulation-FF8F/broker/README.md) for the malicious proxy use case (Section 6 in paper). This repository only supports the malicious proxy use case.  
 
 This README only covers `run_malicious.sh`. The data is in directory of /data here.
 
-## Run
+### Run
 
 From repo root:
 
@@ -294,13 +294,13 @@ Single episode / short run:
  ./run_malicious.sh
 ```
 
-## What this script does
+### What this script does
 
 - Enables malicious standalone proxies (`SNOWFLAKE_SIM_MALICIOUS_PROXY=1`)
 - Uses no attackers (`SNOWFLAKE_SIM_ATTACKER_COUNT=0`)
 - Starts malicious proxies at simulated `+24h`
 
-## Key overrides
+### Key overrides
 
 You can set these before running:
 
@@ -318,7 +318,7 @@ You can set these before running:
 | `CONNECTION_STDDEV_SEC` | `1800` |
 | `BASE_PROXY_TIMEOUT_SEC` | `10` |
 
-## Output
+### Output
 
 By default:
 
@@ -333,5 +333,5 @@ Typical lines to inspect:
 - `step-summary-broker-heaps`
 
 
-## Data
+### Data
 The malicious proxy results are available at data directory
