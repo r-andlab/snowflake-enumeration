@@ -5,7 +5,7 @@ This repository contains 3 folders:
 
 For the details of each part:
 
-# Snowflake Simulation
+## Snowflake Simulation
 
 This directory contains the Snowflake broker server, the simulation harness and the simulation raw logs for analysis in directory of /data.
 
@@ -32,6 +32,8 @@ What is simulated:
   - `SNOWFLAKE_SIM_ATTACK_MODE=1`: blocking mode.
 
 ### Quick Start
+
+get into directory of `general-simulation/broker`
 
 #### 1) Default blocking experiment
 
@@ -238,6 +240,7 @@ Our simualation logs are available (subject to file size constraints) in `broker
 
 
 ## Real-World Enumeration
+get into directory of `real-world`
 
 This repository redefines the Tor-Snowflake Command Line Client, originally available at https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake, for the purposes of our real-world enumeration experiment. 
 
@@ -268,6 +271,7 @@ Raw Snowflake IP addresses and keyed hashes are withheld to protect the privacy 
 
 
 ## Snowflake Broker Simulation (Malicious Proxy)
+get into directory of `malicious-proxy-simulation/broker`
 
 This repository changes our Snowflake simulator for the malicious proxy use case (Section 6 in paper). This repository only supports the malicious proxy use case.  
 
@@ -278,7 +282,6 @@ This README only covers `run_malicious.sh`. The data is in directory of /data he
 From repo root:
 
 ```bash
-cd broker
 ./run_malicious.sh
 ```
 
