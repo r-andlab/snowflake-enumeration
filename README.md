@@ -269,7 +269,7 @@ Raw Snowflake IP addresses and keyed hashes are withheld to protect the privacy 
 
 ## Snowflake Broker Simulation (Malicious Proxy)
 
-This repository changes our Snowflake simulator, available at [https://anonymous.4open.science/r/anonymous-snowflake-simulation-FF8F/broker/README.md](https://anonymous.4open.science/r/anonymous-snowflake-simulation-FF8F/broker/README.md) for the malicious proxy use case (Section 6 in paper). This repository only supports the malicious proxy use case.  
+This repository changes our Snowflake simulator for the malicious proxy use case (Section 6 in paper). This repository only supports the malicious proxy use case.  
 
 This README only covers `run_malicious.sh`. The data is in directory of /data here.
 
