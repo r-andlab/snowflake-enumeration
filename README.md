@@ -17,7 +17,7 @@ The main behavioral changes are:
 
 2. Move to client directory: `cd snowflake/client/`
 
-3. Start the prober using `go prober.go`
+3. Start the prober using `go run prober.go`
 
 4. Enumeration results will be stored in snowflake/client/proxy_ASNs.csv
 
