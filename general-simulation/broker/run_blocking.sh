@@ -5,6 +5,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
 
+# A prebuilt binary can be supplied by containerized runners. Local runs keep
+# using `go run .`, preserving the existing development workflow.
+if [[ -n "${SIMULATOR_BIN:-}" ]]; then
+  SIMULATOR_CMD=("${SIMULATOR_BIN}")
+else
+  SIMULATOR_CMD=(go run .)
+fi
+
 # --- Script-level environment (override before running: EPISODES=3 ./run_blocking.sh) ---
 # EPISODES: how many independent simulation runs per scenario (separate log/enum dirs).
 EPISODES="${EPISODES:-3}"
@@ -172,7 +180,7 @@ run_case() {
         SNOWFLAKE_SIM_CONNECTION_MEAN_SEC="${CONNECTION_MEAN_SEC}" \
         SNOWFLAKE_SIM_CONNECTION_STDDEV_SEC="${CONNECTION_STDDEV_SEC}" \
         "${forwarded_extra_env[@]}" \
-        go run . -simulate >"${log_file}" 2>&1
+        "${SIMULATOR_CMD[@]}" -simulate >"${log_file}" 2>&1
     else
       # Same env as above branch, without scenario-specific overrides.
       env \
@@ -192,7 +200,7 @@ run_case() {
         "${client_target_env[@]}" \
         SNOWFLAKE_SIM_CONNECTION_MEAN_SEC="${CONNECTION_MEAN_SEC}" \
         SNOWFLAKE_SIM_CONNECTION_STDDEV_SEC="${CONNECTION_STDDEV_SEC}" \
-        go run . -simulate >"${log_file}" 2>&1
+        "${SIMULATOR_CMD[@]}" -simulate >"${log_file}" 2>&1
     fi
 
     echo "Wrote ${log_file}"

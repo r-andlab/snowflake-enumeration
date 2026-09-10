@@ -1,3 +1,60 @@
+# Docker Quick Start
+
+## Run all three directories
+
+```bash
+docker compose --profile live up --build
+```
+
+## Run one directory
+
+```bash
+# General simulation: default enumeration, then default blocking
+docker compose up --build general-simulation
+
+# Malicious-proxy simulation
+docker compose up --build malicious-proxy-simulation
+
+# Real-world prober
+docker compose --profile live up --build real-world
+```
+
+Stop running containers with `Ctrl-C` or:
+
+```bash
+docker compose stop
+```
+
+## Check logs after stopping
+
+```bash
+# Container output
+docker compose logs general-simulation
+docker compose logs malicious-proxy-simulation
+docker compose logs real-world
+
+# General enumeration log
+docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
+  general-simulation -n 100 /output/default_enumeration/episode-1/sim.log
+
+# General blocking log
+docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
+  general-simulation -n 100 /output/default_blocking/episode-1/sim.log
+
+# Malicious-proxy log
+docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
+  malicious-proxy-simulation -n 100 /output/default_malicious/episode-1/sim.log
+
+# Real-world results
+docker compose --profile live run --rm --no-deps --entrypoint /usr/bin/tail \
+  real-world -n 100 /output/proxy_ASNs.csv
+```
+
+Use `docker compose stop`, rather than `docker compose down`, if you still need
+the stopped containers' `docker compose logs` output.
+
+---
+
 This repository contains 3 folders:
 1) general-simulation is for simulation of enumeration and blocking locally
 2) real-world  is to run a local client to fetch proxies from real-world broker

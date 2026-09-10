@@ -1,0 +1,48 @@
+x-simulation: &simulation
+  build:
+    context: .
+  image: snowflake-enumeration:local
+  init: true
+  restart: "no"
+
+services:
+  general-simulation:
+    <<: *simulation
+    environment:
+      DEBUG_EVERY_SEC: ${DEBUG_EVERY_SEC:-60}
+      EPISODES: ${EPISODES:-3}
+      OUT_ROOT: /output
+      SIM_DAYS: ${SIM_DAYS:-30}
+      SIMULATOR_BIN: /usr/local/bin/general-simulation
+    volumes:
+      - general-output:/output
+
+  malicious-proxy-simulation:
+    <<: *simulation
+    entrypoint: ["/bin/bash", "/opt/malicious-proxy-simulation/broker/run_malicious.sh"]
+    environment:
+      DEBUG_EVERY_SEC: ${DEBUG_EVERY_SEC:-60}
+      EPISODES: ${EPISODES:-3}
+      OUT_ROOT: /output
+      SIM_DAYS: ${SIM_DAYS:-30}
+      SIMULATOR_BIN: /usr/local/bin/malicious-proxy-simulation
+    volumes:
+      - malicious-output:/output
+
+  real-world:
+    <<: *simulation
+    # Opt-in: this service sends repeated probes to the public Snowflake broker.
+    profiles: ["live"]
+    entrypoint: ["/usr/local/bin/real-world-prober"]
+    working_dir: /output
+    volumes:
+      - real-world-output:/output
+      - type: bind
+        source: ${CAIDA_DATA_DIR:-./prefix-data}
+        target: /home/ubuntu/prefix-data
+        read_only: true
+
+volumes:
+  general-output:
+  malicious-output:
+  real-world-output:
