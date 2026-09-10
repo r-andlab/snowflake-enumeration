@@ -10,9 +10,9 @@ services:
     <<: *simulation
     environment:
       DEBUG_EVERY_SEC: ${DEBUG_EVERY_SEC:-60}
-      EPISODES: ${EPISODES:-3}
+      EPISODES: ${EPISODES:-1}
       OUT_ROOT: /output
-      SIM_DAYS: ${SIM_DAYS:-30}
+      SIM_DAYS: ${SIM_DAYS:-5}
       SIMULATOR_BIN: /usr/local/bin/general-simulation
     volumes:
       - general-output:/output
@@ -22,9 +22,9 @@ services:
     entrypoint: ["/bin/bash", "/opt/malicious-proxy-simulation/broker/run_malicious.sh"]
     environment:
       DEBUG_EVERY_SEC: ${DEBUG_EVERY_SEC:-60}
-      EPISODES: ${EPISODES:-3}
+      EPISODES: ${EPISODES:-1}
       OUT_ROOT: /output
-      SIM_DAYS: ${SIM_DAYS:-30}
+      SIM_DAYS: ${SIM_DAYS:-5}
       SIMULATOR_BIN: /usr/local/bin/malicious-proxy-simulation
     volumes:
       - malicious-output:/output
