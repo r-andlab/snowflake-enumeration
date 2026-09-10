@@ -54,13 +54,12 @@ Use `docker compose stop`, rather than `docker compose down`, if you still need
 the stopped containers' `docker compose logs` output.
 
 ---
+# Details of each part:
 
 This repository contains 3 folders:
 1) general-simulation is for simulation of enumeration and blocking locally
 2) real-world  is to run a local client to fetch proxies from real-world broker
 3) malicious-proxy-simulation is for simulation of a malicious proxy with client count fixed to be -1
-
-For the details of each part:
 
 ## Snowflake Simulation
 
