@@ -60,4 +60,4 @@ USER 65532:65532
 WORKDIR /opt/general-simulation/broker
 
 # Run both default general-simulation experiments in sequence.
-CMD ["/bin/bash", "-c", "ONLY_REGEX='default' ./run_enumeration.sh && ONLY_REGEX='default' ./run_blocking.sh"]
+CMD ["/bin/bash", "-c", "ONLY_REGEX='default|attackers_pct_|churn_|connection_' ./run_enumeration.sh && ONLY_REGEX='default|attackers_pct_|churn_|connection_' ./run_blocking.sh"]
