@@ -25,6 +25,41 @@ Stop running containers with `Ctrl-C` or:
 docker compose stop
 ```
 
+## Run in the background and check logs
+
+Start all three services in detached mode:
+
+```bash
+docker compose --profile live up --build -d
+```
+
+Check whether each service is still running or has finished:
+
+```bash
+docker compose --profile live ps --all
+```
+
+In the `STATUS` column, `Up` means the service is still running,
+`Exited (0)` means it finished successfully, and any other exit code means it
+failed.
+
+Follow logs from all services while they are running:
+
+```bash
+docker compose --profile live logs --follow --tail=100
+```
+
+Follow logs from one service only:
+
+```bash
+docker compose --profile live logs --follow --tail=100 general-simulation
+docker compose --profile live logs --follow --tail=100 malicious-proxy-simulation
+docker compose --profile live logs --follow --tail=100 real-world
+```
+
+Press `Ctrl-C` to stop following the logs. The detached containers will keep
+running.
+
 ## Check logs after stopping
 
 ```bash
