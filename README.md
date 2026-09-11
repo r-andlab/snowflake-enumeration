@@ -1,9 +1,9 @@
 # Docker Quick Start
 
-## Run all three directories
+## Run all three directories at background
 
 ```bash
-docker compose --profile live up --build
+docker compose --profile live up --build -d
 ```
 
 ## Run one directory
@@ -60,7 +60,7 @@ docker compose --profile live logs --follow --tail=100 real-world
 Press `Ctrl-C` to stop following the logs. The detached containers will keep
 running.
 
-## Check logs after stopping
+## Check logs
 
 ```bash
 # Container output
