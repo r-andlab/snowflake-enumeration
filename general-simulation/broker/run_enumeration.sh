@@ -138,7 +138,7 @@ run_case() {
   fi
 
   for ep in $(seq 1 "${EPISODES}"); do
-    local episode_dir="${OUT_ROOT}/${scenario}/episode-${ep}"
+    local episode_dir="${OUT_ROOT}/${scenario}/enumeration/episode-${ep}"
     local log_file="${episode_dir}/sim.log"
     local enum_file="${episode_dir}/attacker_enum.csv"
     mkdir -p "${episode_dir}"

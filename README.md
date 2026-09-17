@@ -70,11 +70,11 @@ docker compose logs real-world
 
 # General enumeration log
 docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
-  general-simulation -n 100 /output/default_enumeration/episode-1/sim.log
+  general-simulation -n 100 /output/default_enumeration/enumeration/episode-1/sim.log
 
 # General blocking log
 docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
-  general-simulation -n 100 /output/default_blocking/episode-1/sim.log
+  general-simulation -n 100 /output/default_blocking/blocking/episode-1/sim.log
 
 # Malicious-proxy log
 docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
@@ -87,6 +87,49 @@ docker compose --profile live run --rm --no-deps --entrypoint /usr/bin/tail \
 
 Use `docker compose stop`, rather than `docker compose down`, if you still need
 the stopped containers' `docker compose logs` output.
+
+## Plot general-simulation results
+
+[`Selected_Simulation_Figures.ipynb`](general-simulation/Selected_Simulation_Figures.ipynb)
+reads `sim.log` files, not the output of `docker compose logs`. Its plotting
+helper, [`simulation_variation_analysis.py`](general-simulation/simulation_variation_analysis.py),
+is included beside the notebook. A Python environment with Jupyter, pandas,
+NumPy, and Matplotlib is required.
+
+From the repository root, after `general-simulation` shows `Exited (0)` in
+`docker compose ps --all`, prepare the notebook's expected layout and copy the
+generated files out of its Docker volume:
+
+```bash
+mkdir -p "general-simulation/data/Simulation Results"
+docker compose cp general-simulation:/output/. \
+  "general-simulation/data/Simulation Results/"
+```
+
+Copy the results before `docker compose down` removes the service container.
+If your Docker commands require `sudo`, use it for `docker compose ps` and
+`docker compose cp` above. Then launch Jupyter from `general-simulation/` so
+the notebook can find `broker/` and its adjacent plotting helper:
+
+```bash
+cd general-simulation
+jupyter lab Selected_Simulation_Figures.ipynb
+```
+
+Run the first setup and inventory cells, and check that the inventory lists the
+scenarios and modes you expect before generating figures. PDFs are written to
+`general-simulation/figures/selected_simulation_figures/`.
+
+New runs store logs under `<scenario>/enumeration/episode-N/` or
+`<scenario>/blocking/episode-N/`, so both modes are preserved for scenarios
+such as `churn_x2`. Logs from runs made before this layout change may still
+have overwritten enumeration variants; those cannot be recovered from the
+remaining blocking logs. Skip the two standalone-churn cells unless
+you have supplied the separate `standalone_one_tenth_churn_rate` and
+`standalone_half_churn_rate` datasets in the layout those cells require. You
+can still run the final export-summary cell after skipping those cells. For
+meaningful post-start attacker data, set `SIM_DAYS` above 1 on a future run:
+the prober starts after 24 simulated hours.
 
 ---
 # Details of each part:
