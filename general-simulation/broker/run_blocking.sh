@@ -209,7 +209,7 @@ run_case() {
 }
 
 # DEFAULT (blocking attack).
-run_case "default_blocking" 1
+run_case "default" 1
 
 # Churn variants (blocking).
 # SNOWFLAKE_SIM_CHURN_RATE_PCT — hourly proxy churn as % of fleet (replaced proxies per churn cycle).

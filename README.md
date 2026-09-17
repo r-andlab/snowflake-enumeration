@@ -70,11 +70,11 @@ docker compose logs real-world
 
 # General enumeration log
 docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
-  general-simulation -n 100 /output/default_enumeration/enumeration/episode-1/sim.log
+  general-simulation -n 100 /output/default/enumeration/episode-1/sim.log
 
 # General blocking log
 docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
-  general-simulation -n 100 /output/default_blocking/blocking/episode-1/sim.log
+  general-simulation -n 100 /output/default/blocking/episode-1/sim.log
 
 # Malicious-proxy log
 docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
@@ -121,9 +121,10 @@ scenarios and modes you expect before generating figures. PDFs are written to
 `general-simulation/figures/selected_simulation_figures/`.
 
 New runs store logs under `<scenario>/enumeration/episode-N/` or
-`<scenario>/blocking/episode-N/`, so both modes are preserved for scenarios
-such as `churn_x2`. Logs from runs made before this layout change may still
-have overwritten enumeration variants; those cannot be recovered from the
+`<scenario>/blocking/episode-N/`; the baseline uses `default` as its scenario
+directory. Both modes are preserved for scenarios such as `churn_x2`. Logs from
+runs made before this layout change may still have overwritten enumeration
+variants; those cannot be recovered from the
 remaining blocking logs. Skip the two standalone-churn cells unless
 you have supplied the separate `standalone_one_tenth_churn_rate` and
 `standalone_half_churn_rate` datasets in the layout those cells require. You

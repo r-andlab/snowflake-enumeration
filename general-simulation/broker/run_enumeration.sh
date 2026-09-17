@@ -192,7 +192,7 @@ run_case() {
 }
 
 # DEFAULT (enumeration-only).
-run_case "default_enumeration" 0
+run_case "default" 0
 
 # Churn variants (enumeration-only).
 # SNOWFLAKE_SIM_CHURN_RATE_PCT — hourly proxy churn as % of fleet (replaced proxies per churn cycle).
