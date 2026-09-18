@@ -60,7 +60,7 @@ sudo docker compose --profile live cp real-world:/output/proxy_ASNs.csv \
   "./unrestricted.csv"
 sudo docker compose --profile live cp real-world-restricted:/output/proxy_ASNs.csv \
   "./restricted.csv"
-2. unzip side_info.zip
+2. unzip asn_info.zip
 
 3. run Real_World_Selected_Figures.ipynb
 
