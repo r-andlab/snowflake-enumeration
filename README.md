@@ -78,21 +78,28 @@ docker compose up --build malicious-proxy-simulation
 docker compose --profile live up --build -d real-world real-world-restricted
 ```
 
-## Run half standalone churn
+## Run `standalone_half_churn_rate`
 
-The `standalone-half-churn` service runs the default enumeration and blocking
-experiments with `SNOWFLAKE_SIM_STANDALONE_CHURN_FACTOR=0.5`. This halves
-standalone proxy churn while leaving the webext and IPT proxy churn rates at
-their defaults. It writes to a separate Docker volume.
+From the repository root, start the `standalone-half-churn` Compose service.
+It runs the default enumeration experiment, then the default blocking
+experiment, with `SNOWFLAKE_SIM_STANDALONE_CHURN_FACTOR=0.5`. This halves
+standalone proxy churn while leaving webext and IPT proxy churn unchanged.
+Results go to a dedicated Docker volume.
 
 ```bash
 SIM_DAYS=5 EPISODES=1 docker compose up --build -d standalone-half-churn
+```
+
+Follow the run and check its final status:
+
+```bash
 docker compose logs -f standalone-half-churn
 docker compose ps --all standalone-half-churn
 ```
 
-After the service exits with code 0, copy its results into the path expected
-by `Selected_Simulation_Figures.ipynb`:
+The service is finished when `docker compose ps --all` shows `Exited (0)`.
+Then copy the results into the `standalone_half_churn_rate` dataset directory
+expected by `Selected_Simulation_Figures.ipynb`:
 
 ```bash
 mkdir -p "general-simulation/data/Simulation Results/standalone_half_churn_rate"
@@ -100,9 +107,8 @@ docker compose cp standalone-half-churn:/output/. \
   "general-simulation/data/Simulation Results/standalone_half_churn_rate/"
 ```
 
-`SIM_DAYS` and `EPISODES` can be set on the `docker compose up` command.
-The attacker starts after 24 simulated hours, so use more than one simulated
-day to collect post-start data.
+Change `SIM_DAYS` and `EPISODES` in the first command as needed.
+`docker compose stop standalone-half-churn`.
 
 Stop running containers with `Ctrl-C` or:
 
