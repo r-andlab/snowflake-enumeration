@@ -22,6 +22,7 @@ func (sl *stepLoop) bootstrap() {
 		sl.iptPollInterval,
 		sl.proxyPollJitterPct,
 		sl.churnRateBase*100.0,
+		sl.standaloneChurnFactor,
 		sl.spreadHourlyChurn,
 		sl.proxyCountScale,
 		sl.standaloneUnrestricted,

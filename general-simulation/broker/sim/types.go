@@ -115,6 +115,7 @@ type stepLoop struct {
 	connectionStddevWait   time.Duration
 
 	churnRateBase          float64
+	standaloneChurnFactor  float64
 	proxyCountScale        float64
 	standaloneUnrestricted float64
 	webIPTUnrestricted     float64

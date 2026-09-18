@@ -22,7 +22,7 @@ const (
 	defaultMatchedProxyWait  = 3 * time.Hour
 	defaultMatchedClientWait = 3 * time.Hour
 	defaultChurnRate         = 0.027
-	defaultStandaloneChurnK  = 0.5
+	defaultStandaloneChurnK  = 1.0
 	proxySpreadWindow        = 24 * time.Hour
 )
 
@@ -46,6 +46,10 @@ func newStepLoop(sim *ProxyPollSimulator, startTime time.Time, step time.Duratio
 		churnRatePct = 0
 	}
 	churnRateBase := churnRatePct / 100.0
+	standaloneChurnFactor := getEnvFloat("SNOWFLAKE_SIM_STANDALONE_CHURN_FACTOR", defaultStandaloneChurnK)
+	if standaloneChurnFactor < 0 {
+		standaloneChurnFactor = 0
+	}
 	proxyCountScale := getEnvFloat("SNOWFLAKE_SIM_PROXY_COUNT_SCALE", 1.0)
 	if proxyCountScale < 0 {
 		proxyCountScale = 0
@@ -113,6 +117,7 @@ func newStepLoop(sim *ProxyPollSimulator, startTime time.Time, step time.Duratio
 		connectionMeanWait:     connectionMeanWait,
 		connectionStddevWait:   connectionStddevWait,
 		churnRateBase:          churnRateBase,
+		standaloneChurnFactor:  standaloneChurnFactor,
 		proxyCountScale:        proxyCountScale,
 		standaloneUnrestricted: standaloneUnrestricted,
 		webIPTUnrestricted:     webIPTUnrestricted,
@@ -382,10 +387,7 @@ func (sl *stepLoop) applyChurn(now time.Time) {
 		if len(proxies) == 0 {
 			continue
 		}
-		rate := sl.churnRateBase
-		if proxyType == "standalone" {
-			rate = sl.churnRateBase * defaultStandaloneChurnK
-		}
+		rate := sl.churnRateForType(proxyType)
 		if rate <= 0 {
 			continue
 		}
@@ -420,6 +422,9 @@ func (sl *stepLoop) projectedProxyCount(proxyType string) int {
 func (sl *stepLoop) churnRateForType(proxyType string) float64 {
 	if sl.churnRateBase < 0 {
 		return 0
+	}
+	if proxyType == "standalone" {
+		return sl.churnRateBase * sl.standaloneChurnFactor
 	}
 	return sl.churnRateBase
 }

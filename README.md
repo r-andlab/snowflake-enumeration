@@ -78,6 +78,32 @@ docker compose up --build malicious-proxy-simulation
 docker compose --profile live up --build -d real-world real-world-restricted
 ```
 
+## Run half standalone churn
+
+The `standalone-half-churn` service runs the default enumeration and blocking
+experiments with `SNOWFLAKE_SIM_STANDALONE_CHURN_FACTOR=0.5`. This halves
+standalone proxy churn while leaving the webext and IPT proxy churn rates at
+their defaults. It writes to a separate Docker volume.
+
+```bash
+SIM_DAYS=5 EPISODES=1 docker compose up --build -d standalone-half-churn
+docker compose logs -f standalone-half-churn
+docker compose ps --all standalone-half-churn
+```
+
+After the service exits with code 0, copy its results into the path expected
+by `Selected_Simulation_Figures.ipynb`:
+
+```bash
+mkdir -p "general-simulation/data/Simulation Results/standalone_half_churn_rate"
+docker compose cp standalone-half-churn:/output/. \
+  "general-simulation/data/Simulation Results/standalone_half_churn_rate/"
+```
+
+`SIM_DAYS` and `EPISODES` can be set on the `docker compose up` command.
+The attacker starts after 24 simulated hours, so use more than one simulated
+day to collect post-start data.
+
 Stop running containers with `Ctrl-C` or:
 
 ```bash
@@ -354,6 +380,7 @@ Notes:
 | Variable | Default | Meaning |
 |---|---:|---|
 | `SNOWFLAKE_SIM_CHURN_RATE_PCT` | `2.7` | Base hourly churn rate. |
+| `SNOWFLAKE_SIM_STANDALONE_CHURN_FACTOR` | `1.0` | Multiplier on the base churn rate for standalone proxies only (`0.5` halves it). |
 | `SNOWFLAKE_SIM_SPREAD_HOURLY_CHURN` | `1` | If enabled, applies hourly target/churn adjustments gradually across the hour. If `0`, uses legacy batch-at-hour-boundary behavior (can cause client poll spikes near `:00/:01`). |
 
 #### Logging and instrumentation
