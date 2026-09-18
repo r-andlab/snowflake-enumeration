@@ -9,12 +9,12 @@ docker compose --profile live up --build -d
 ## Special Notes
 1. For simulation, the default sim days is 5 days, which needs around 2 days on a 12-core 70G server. 
 2. Please modify the `SIM_DAYS` at `compose.yaml` to simulate as long as possible (at least 5 days) to reproduce the results
-3. For real-world docker, we recommend running for at least 5 days to draw the graphs.
+3. For real-world docker, we recommend running for at least 5 days to reproduce the results.
 
 ## Plot general-simulation results
 
 [`Selected_Simulation_Figures.ipynb`](general-simulation/Selected_Simulation_Figures.ipynb)
-reads `sim.log` files, not the output of `docker compose logs`. Its plotting
+reads `sim.log` files. Its plotting
 helper, [`simulation_variation_analysis.py`](general-simulation/simulation_variation_analysis.py),
 is included beside the notebook. A Python environment with Jupyter, pandas,
 NumPy, and Matplotlib is required.
@@ -25,8 +25,7 @@ generated files out of its Docker volume:
 
 ```bash
 mkdir -p "general-simulation/data/Simulation Results"
-docker compose cp general-simulation:/output/. \
-  "general-simulation/data/Simulation Results/"
+docker compose cp general-simulation:/output/. "general-simulation/data/Simulation Results/"
 ```
 
 Copy the results before `docker compose down` removes the service container.
@@ -65,7 +64,7 @@ sudo docker compose --profile live cp real-world-restricted:/output/proxy_ASNs.c
 
 3. run Real_World_Selected_Figures.ipynb
 
-## Run one directory
+## Run a single directory
 
 ```bash
 # General simulation: default enumeration, then default blocking
