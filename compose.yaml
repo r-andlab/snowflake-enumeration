@@ -12,7 +12,7 @@ services:
       DEBUG_EVERY_SEC: ${DEBUG_EVERY_SEC:-60}
       EPISODES: ${EPISODES:-1}
       OUT_ROOT: /output
-      SIM_DAYS: ${SIM_DAYS:-1}
+      SIM_DAYS: ${SIM_DAYS:-5}
       SIMULATOR_BIN: /usr/local/bin/general-simulation
     volumes:
       - general-output:/output
@@ -24,19 +24,35 @@ services:
       DEBUG_EVERY_SEC: ${DEBUG_EVERY_SEC:-60}
       EPISODES: ${EPISODES:-1}
       OUT_ROOT: /output
-      SIM_DAYS: ${SIM_DAYS:-1}
+      SIM_DAYS: ${SIM_DAYS:-5}
       SIMULATOR_BIN: /usr/local/bin/malicious-proxy-simulation
     volumes:
       - malicious-output:/output
 
   real-world:
     <<: *simulation
-    # Opt-in: this service sends repeated probes to the public Snowflake broker.
+    # Opt-in: these services send repeated probes to the public Snowflake broker.
     profiles: ["live"]
     entrypoint: ["/usr/local/bin/real-world-prober"]
     working_dir: /output
+    environment:
+      SNOWFLAKE_PROBER_NAT_TYPE: unrestricted
     volumes:
-      - real-world-output:/output
+      - real-world-unrestricted-output:/output
+      - type: bind
+        source: ${CAIDA_DATA_DIR:-./prefix-data}
+        target: /home/ubuntu/prefix-data
+        read_only: true
+
+  real-world-restricted:
+    <<: *simulation
+    profiles: ["live"]
+    entrypoint: ["/usr/local/bin/real-world-prober"]
+    working_dir: /output
+    environment:
+      SNOWFLAKE_PROBER_NAT_TYPE: restricted
+    volumes:
+      - real-world-restricted-output:/output
       - type: bind
         source: ${CAIDA_DATA_DIR:-./prefix-data}
         target: /home/ubuntu/prefix-data
@@ -45,4 +61,5 @@ services:
 volumes:
   general-output:
   malicious-output:
-  real-world-output:
+  real-world-unrestricted-output:
+  real-world-restricted-output:

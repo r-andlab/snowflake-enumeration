@@ -1,92 +1,15 @@
 # Docker Quick Start
 
-## Run all three directories at background
+## Run all services in the background (including both live probers)
 
 ```bash
 docker compose --profile live up --build -d
 ```
 
-## Run one directory
-
-```bash
-# General simulation: default enumeration, then default blocking
-docker compose up --build general-simulation
-
-# Malicious-proxy simulation
-docker compose up --build malicious-proxy-simulation
-
-# Real-world prober
-docker compose --profile live up --build real-world
-```
-
-Stop running containers with `Ctrl-C` or:
-
-```bash
-docker compose stop
-```
-
-## Run in the background and check logs
-
-Start all three services in detached mode:
-
-```bash
-docker compose --profile live up --build -d
-```
-
-Check whether each service is still running or has finished:
-
-```bash
-docker compose --profile live ps --all
-```
-
-In the `STATUS` column, `Up` means the service is still running,
-`Exited (0)` means it finished successfully, and any other exit code means it
-failed.
-
-Follow logs from all services while they are running:
-
-```bash
-docker compose --profile live logs --follow --tail=100
-```
-
-Follow logs from one service only:
-
-```bash
-docker compose --profile live logs --follow --tail=100 general-simulation
-docker compose --profile live logs --follow --tail=100 malicious-proxy-simulation
-docker compose --profile live logs --follow --tail=100 real-world
-```
-
-Press `Ctrl-C` to stop following the logs. The detached containers will keep
-running.
-
-## Check logs
-
-```bash
-# Container output
-docker compose logs general-simulation
-docker compose logs malicious-proxy-simulation
-docker compose logs real-world
-
-# General enumeration log
-docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
-  general-simulation -n 100 /output/default/enumeration/episode-1/sim.log
-
-# General blocking log
-docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
-  general-simulation -n 100 /output/default/blocking/episode-1/sim.log
-
-# Malicious-proxy log
-docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
-  malicious-proxy-simulation -n 100 /output/default_malicious/episode-1/sim.log
-
-# Real-world results
-docker compose --profile live run --rm --no-deps --entrypoint /usr/bin/tail \
-  real-world -n 100 /output/proxy_ASNs.csv
-```
-
-Use `docker compose stop`, rather than `docker compose down`, if you still need
-the stopped containers' `docker compose logs` output.
+## Special Notes
+1. For simulation, the default sim days is 5 days, which needs around 2 days on a 12-core 70G server. 
+2. Please modify the `SIM_DAYS` at `compose.yaml` to simulate as long as possible (at least 5 days) to reproduce the results
+3. For real-world docker, we recommend running for at least 5 days to draw the graphs.
 
 ## Plot general-simulation results
 
@@ -131,6 +54,105 @@ you have supplied the separate `standalone_one_tenth_churn_rate` and
 can still run the final export-summary cell after skipping those cells. For
 meaningful post-start attacker data, set `SIM_DAYS` above 1 on a future run:
 the prober starts after 24 simulated hours.
+
+## Plot real-world results
+1. find the location of Real_World_Selected_Figures.ipynb and copy data
+sudo docker compose --profile live cp real-world:/output/proxy_ASNs.csv \
+  "./unrestricted.csv"
+sudo docker compose --profile live cp real-world-restricted:/output/proxy_ASNs.csv \
+  "./restricted.csv"
+2. unzip side_info.zip
+
+3. run Real_World_Selected_Figures.ipynb
+
+## Run one directory
+
+```bash
+# General simulation: default enumeration, then default blocking
+docker compose up --build general-simulation
+
+# Malicious-proxy simulation
+docker compose up --build malicious-proxy-simulation
+
+# Real-world probers: unrestricted and restricted NAT labels
+docker compose --profile live up --build -d real-world real-world-restricted
+```
+
+Stop running containers with `Ctrl-C` or:
+
+```bash
+docker compose --profile live stop
+```
+
+## Run in the background and check logs
+
+Start all services in detached mode:
+
+```bash
+docker compose --profile live up --build -d
+```
+
+Check whether each service is still running or has finished:
+
+```bash
+docker compose --profile live ps --all
+```
+
+In the `STATUS` column, `Up` means the service is still running,
+`Exited (0)` means it finished successfully, and any other exit code means it
+failed.
+
+Follow logs from all services while they are running:
+
+```bash
+docker compose --profile live logs --follow --tail=100
+```
+
+Follow logs from one service only:
+
+```bash
+docker compose --profile live logs --follow --tail=100 general-simulation
+docker compose --profile live logs --follow --tail=100 malicious-proxy-simulation
+docker compose --profile live logs --follow --tail=100 real-world
+docker compose --profile live logs --follow --tail=100 real-world-restricted
+```
+
+Press `Ctrl-C` to stop following the logs. The detached containers will keep
+running.
+
+## Check logs
+
+```bash
+# Container output
+docker compose logs general-simulation
+docker compose logs malicious-proxy-simulation
+docker compose logs real-world
+docker compose --profile live logs real-world-restricted
+
+# General enumeration log
+docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
+  general-simulation -n 100 /output/default/enumeration/episode-1/sim.log
+
+# General blocking log
+docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
+  general-simulation -n 100 /output/default/blocking/episode-1/sim.log
+
+# Malicious-proxy log
+docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
+  malicious-proxy-simulation -n 100 /output/default_malicious/episode-1/sim.log
+
+# Real-world results: unrestricted
+docker compose --profile live run --rm --no-deps --entrypoint /usr/bin/tail \
+  real-world -n 100 /output/proxy_ASNs.csv
+
+# Real-world results: restricted
+docker compose --profile live run --rm --no-deps --entrypoint /usr/bin/tail \
+  real-world-restricted -n 100 /output/proxy_ASNs.csv
+```
+
+Use `docker compose stop`, rather than `docker compose down`, if you still need
+the stopped containers' `docker compose logs` output.
+
 
 ---
 # Details of each part:
@@ -389,13 +411,27 @@ The main behavioral changes are:
 - Supporting client changes export broker-channel construction, refine WebRTC peer setup, and isolate per-connection client configuration in the SOCKS accept loop.
 
 #### Running the Prober
-1. To use the prober, hardcode the client NAT setting first at `snowflake/client/lib/rendezvous.go#L396` 
+The prober sets the NAT value **advertised to the broker** from
+`SNOWFLAKE_PROBER_NAT_TYPE` (`restricted` or `unrestricted`). This does not
+change the machine's actual network NAT. The two Compose services use the same
+prober binary but set different NAT values and write to separate Docker volumes.
+From the repository root, start both in the background:
 
-2. Move to client directory: `cd snowflake/client/`
+```bash
+docker compose --profile live up --build -d real-world real-world-restricted
+docker compose --profile live ps --all real-world real-world-restricted
+docker compose --profile live logs --follow --tail=50 real-world real-world-restricted
+```
 
-3. Start the prober using `go prober.go`
-
-4. Enumeration results will be stored in snowflake/client/proxy_ASNs.csv
+Press `Ctrl-C` to leave the log view; both probers keep running. Stop them with
+`docker compose --profile live stop real-world real-world-restricted`. Each
+service writes `/output/proxy_ASNs.csv` to its own volume:
+`real-world-unrestricted-output` for `real-world` and
+`real-world-restricted-output` for `real-world-restricted`. Use the tail
+commands in **Check logs** above to read each file. The pre-existing
+`real-world-output` volume is not removed or reused, so earlier measurements
+remain separate. Each prober generates its own random hash key; hashed IPs in
+the two CSVs cannot be compared directly across services.
 
 Note: We caution against using the prober heavily against the live Snowflake broker, as it may cause technical disruptions (see paper for safety details). 
 

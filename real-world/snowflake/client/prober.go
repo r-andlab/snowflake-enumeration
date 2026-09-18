@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/pion/webrtc/v4"
 	"gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2/client/lib"
+	"gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2/common/nat"
 )
 
 func main() {
@@ -29,6 +31,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create BrokerChannel: %v", err)
 	}
+	natType := os.Getenv("SNOWFLAKE_PROBER_NAT_TYPE")
+	if natType == "" {
+		natType = nat.NATUnrestricted
+	}
+	if natType != nat.NATRestricted && natType != nat.NATUnrestricted {
+		log.Fatalf("Invalid SNOWFLAKE_PROBER_NAT_TYPE %q: use %q or %q", natType, nat.NATRestricted, nat.NATUnrestricted)
+	}
+	broker.SetNATType(natType)
+	log.Printf("Prober NAT type: %s", natType)
 
 	// Define reusable WebRTC ICE server configuration
 	webrtcConfig := &webrtc.Configuration{

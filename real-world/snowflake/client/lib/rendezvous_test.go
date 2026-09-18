@@ -75,6 +75,16 @@ func makeEncPollResp(answer, errorStr string) []byte {
 
 var fakeEncPollReq = makeEncPollReq(`{"type":"offer","sdp":"test"}`)
 
+func TestSetNATType(t *testing.T) {
+	broker := &BrokerChannel{natType: nat.NATUnknown}
+	for _, natType := range []string{nat.NATRestricted, nat.NATUnrestricted} {
+		broker.SetNATType(natType)
+		if broker.natType != natType {
+			t.Errorf("SetNATType(%q) set NAT type to %q", natType, broker.natType)
+		}
+	}
+}
+
 func TestHTTPRendezvous(t *testing.T) {
 	Convey("HTTP rendezvous", t, func() {
 		Convey("Construct httpRendezvous with no front domain", func() {

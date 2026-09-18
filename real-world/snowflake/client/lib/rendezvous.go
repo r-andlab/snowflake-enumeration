@@ -387,21 +387,11 @@ func loadCAIDAData(filePath string, tree cidranger.Ranger) error {
 	return nil
 }
 
-// SetNATType sets the NAT type of the client so we can send it to the WebRTC broker.
-// Sets NAT Type to either "unrestricted" or "restricted"
-func (bc *BrokerChannel) SetNATType(NATType string) {
-	fmt.Println("Setting NAT Type") // Debugging Log
-	//NATType = "restricted"
-	//NATType = "unrestricted"
-	hardcodedNATType := "unrestricted"
-
+// SetNATType sets the NAT type sent in client poll requests to the broker.
+func (bc *BrokerChannel) SetNATType(natType string) {
 	bc.lock.Lock()
-	//bc.natType = NATType //original implementation
-	bc.natType = hardcodedNATType //new hardcoded implementation
+	bc.natType = natType
 	bc.lock.Unlock()
-	// logging
-	log.Printf("Original NAT Type: %s", NATType)
-	fmt.Printf("Hard Coded NAT Type: %s \n", hardcodedNATType)
 }
 
 // WebRTCDialer implements the |Tongue| interface to catch snowflakes, using BrokerChannel.
