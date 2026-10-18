@@ -1998,6 +1998,18 @@ def _scenario_records_for_plot(subset: pd.DataFrame) -> list[tuple[pd.Series, pd
     return scenario_records
 
 
+def _set_day_axis_for_scenario_records(
+    ax: matplotlib.axes.Axes,
+    scenario_records: list[tuple[pd.Series, pd.DataFrame]],
+) -> matplotlib.axes.Axes:
+    max_hours = max(
+        float(aggregated["hours_since_start"].max())
+        for _, aggregated in scenario_records
+        if not aggregated.empty
+    )
+    return _set_day_axis(ax, np.asarray([max_hours]))
+
+
 def _cumulative_trapezoid(x: pd.Series | np.ndarray, y: pd.Series | np.ndarray) -> np.ndarray:
     x_arr = np.asarray(x, dtype=float)
     y_arr = np.asarray(y, dtype=float)
@@ -2311,7 +2323,13 @@ def plot_enumeration_baseline_proxy_overlay(
 
     ax.axvline(PROBER_START_HOURS / 24.0, color="#555555", linestyle=":", linewidth=1.2, alpha=0.8)
     ax.set_ylim(0, 100)
-    _set_day_axis(ax, aggregated["hours_since_start"])
+    axis_timeseries = [
+        frame
+        for frame in (aggregated, comparison, standalone_default)
+        if not frame.empty
+    ]
+    max_hours = max(float(frame["hours_since_start"].max()) for frame in axis_timeseries)
+    _set_day_axis(ax, np.asarray([max_hours]))
     ax.set_xlabel("Day", fontsize=appendix_axis_label_size)
     ax.set_ylabel("Coverage (%)", fontsize=appendix_axis_label_size)
     style_paper_axes(ax)
@@ -2387,13 +2405,13 @@ def plot_factor_blocking(
     axes[0].set_title("Coverage", fontsize=PAPER_PANEL_TITLE_SIZE)
     axes[0].set_ylabel("Unique proxies found (%)", fontsize=PAPER_AXIS_LABEL_SIZE)
     axes[0].set_ylim(0, 100)
-    _set_day_axis(axes[0], scenario_records[0][1]["hours_since_start"])
+    _set_day_axis_for_scenario_records(axes[0], scenario_records)
     style_paper_axes(axes[0])
 
     axes[1].axvline(PROBER_START_HOURS / 24.0, color="#555555", linestyle=":", linewidth=1.2, alpha=0.8)
     axes[1].set_title("Client Retry Burden", fontsize=PAPER_PANEL_TITLE_SIZE)
     axes[1].set_ylabel("Client Retries (log)", fontsize=PAPER_AXIS_LABEL_SIZE)
-    _set_day_axis(axes[1], scenario_records[0][1]["hours_since_start"])
+    _set_day_axis_for_scenario_records(axes[1], scenario_records)
     axes[1].set_yscale("log")
     axes[1].set_ylim(bottom=0.5)
     style_paper_axes(axes[1])
@@ -2474,7 +2492,7 @@ def plot_factor_enumeration_coverage_only(
 
     ax.axvline(PROBER_START_HOURS / 24.0, color="#555555", linestyle=":", linewidth=1.1, alpha=0.8)
     ax.set_ylim(0, 100)
-    _set_day_axis(ax, aggregated["hours_since_start"])
+    _set_day_axis_for_scenario_records(ax, scenario_records)
     ax.set_xlabel("Day", fontsize=compact_axis_label_size)
     ax.set_ylabel("Coverage (%)", fontsize=compact_axis_label_size)
     style_paper_axes(ax)
@@ -2550,7 +2568,7 @@ def plot_factor_active_heap_seen_only(
 
     ax.axvline(PROBER_START_HOURS / 24.0, color="#555555", linestyle=":", linewidth=1.1, alpha=0.8)
     ax.set_ylim(0, 100)
-    _set_day_axis(ax, aggregated["hours_since_start"])
+    _set_day_axis_for_scenario_records(ax, scenario_records)
     ax.set_ylabel("Visible Active Heap (%)", fontsize=PAPER_AXIS_LABEL_SIZE)
     style_paper_axes(ax)
 
@@ -2615,7 +2633,7 @@ def plot_factor_blocking_retry_only(
     ax.axvline(PROBER_START_HOURS / 24.0, color="#555555", linestyle=":", linewidth=1.1, alpha=0.8)
     ax.set_yscale("log")
     ax.set_ylim(bottom=0.5)
-    _set_day_axis(ax, aggregated["hours_since_start"])
+    _set_day_axis_for_scenario_records(ax, scenario_records)
     ax.set_ylabel("Client Retries (log)", fontsize=PAPER_AXIS_LABEL_SIZE)
     style_paper_axes(ax)
 
@@ -2680,7 +2698,7 @@ def plot_factor_blocking_blocked_attempt_rate_only(
 
     ax.axvline(PROBER_START_HOURS / 24.0, color="#555555", linestyle=":", linewidth=1.1, alpha=0.8)
     ax.set_ylim(0, 100)
-    _set_day_axis(ax, aggregated["hours_since_start"])
+    _set_day_axis_for_scenario_records(ax, scenario_records)
     ax.set_ylabel("% Attempts w/ >=1 Retry", fontsize=PAPER_AXIS_LABEL_SIZE)
     style_paper_axes(ax)
 
@@ -2744,7 +2762,7 @@ def plot_factor_blocking_unsuccessful_request_rate_only(
 
     ax.axvline(PROBER_START_HOURS / 24.0, color="#555555", linestyle=":", linewidth=1.1, alpha=0.8)
     ax.set_ylim(0, 100)
-    _set_day_axis(ax, aggregated["hours_since_start"])
+    _set_day_axis_for_scenario_records(ax, scenario_records)
     ax.set_ylabel("% Unsuccessful", fontsize=PAPER_AXIS_LABEL_SIZE)
     style_paper_axes(ax)
 
@@ -2959,7 +2977,7 @@ def plot_factor_blocking_nomatch_reason_panels(
 
     ax.axvline(PROBER_START_HOURS / 24.0, color="#555555", linestyle=":", linewidth=1.1, alpha=0.8)
     ax.set_ylim(0, 100)
-    _set_day_axis(ax, aggregated["hours_since_start"])
+    _set_day_axis_for_scenario_records(ax, scenario_records)
     ax.set_ylabel("% Client Requests", fontsize=PAPER_AXIS_LABEL_SIZE)
     style_paper_axes(ax)
 
