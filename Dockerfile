@@ -9,22 +9,31 @@ COPY general-simulation/go.mod general-simulation/go.sum ./general-simulation/
 COPY malicious-proxy-simulation/go.mod malicious-proxy-simulation/go.sum ./malicious-proxy-simulation/
 COPY real-world/snowflake/go.mod real-world/snowflake/go.sum ./real-world/snowflake/
 
-RUN cd general-simulation && go mod download
-RUN cd malicious-proxy-simulation && go mod download
-RUN cd real-world/snowflake && go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    cd general-simulation && go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    cd malicious-proxy-simulation && go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    cd real-world/snowflake && go mod download
 
 COPY general-simulation ./general-simulation
 COPY malicious-proxy-simulation ./malicious-proxy-simulation
 COPY real-world/snowflake ./real-world/snowflake
 
 RUN mkdir /out
-RUN cd general-simulation && \
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    cd general-simulation && \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" \
       -o /out/general-simulation ./broker
-RUN cd malicious-proxy-simulation && \
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    cd malicious-proxy-simulation && \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" \
       -o /out/malicious-proxy-simulation ./broker
-RUN cd real-world/snowflake && \
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    cd real-world/snowflake && \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" \
       -o /out/real-world-prober ./client/prober.go
 
