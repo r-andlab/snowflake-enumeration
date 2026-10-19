@@ -184,6 +184,40 @@ docker compose --profile live run --rm --no-deps --entrypoint /usr/bin/tail \
 Use `docker compose stop`, rather than `docker compose down`, if you still need
 the stopped containers' `docker compose logs` output.
 
+### Check malicious-proxy logs
+
+Check whether the malicious-proxy container is running or has exited:
+
+```bash
+docker compose ps --all malicious-proxy-simulation
+```
+
+Follow the container's wrapper output:
+
+```bash
+docker compose logs --follow --tail=100 malicious-proxy-simulation
+```
+
+The runner redirects the simulator's detailed output to the `malicious-output`
+volume rather than standard output. Follow that log from a temporary helper
+container:
+
+```bash
+docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
+  malicious-proxy-simulation \
+  -n 100 -F /output/default_malicious/episode-1/sim.log
+```
+
+Press `Ctrl-C` to stop following the log; the simulation container continues
+running. To print the last 100 lines without following, replace `-F` with no
+follow option:
+
+```bash
+docker compose run --rm --no-deps --entrypoint /usr/bin/tail \
+  malicious-proxy-simulation \
+  -n 100 /output/default_malicious/episode-1/sim.log
+```
+
 
 ---
 # Details of each part:
