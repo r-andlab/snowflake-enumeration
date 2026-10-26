@@ -14,14 +14,18 @@ docker compose --profile live up --build -d
 ## Plot general-simulation results
 
 [`Selected_Simulation_Figures.ipynb`](general-simulation/Selected_Simulation_Figures.ipynb)
-reads `sim.log` files. Its plotting
+reads generated `sim.log` files under `general-simulation/data/Simulation Results/`
+first. If that directory contains no valid runs, it falls back to the checked-in
+`sim*.log.gz` files under `general-simulation/broker/data/` and decompresses them
+while reading; extracted copies do not need to be created. Its plotting
 helper, [`simulation_variation_analysis.py`](general-simulation/simulation_variation_analysis.py),
 is included beside the notebook. A Python environment with Jupyter, pandas,
 NumPy, and Matplotlib is required.
 
-From the repository root, after `general-simulation` shows `Exited (0)` in
-`docker compose ps --all`, prepare the notebook's expected layout and copy the
-generated files out of its Docker volume:
+The checked-in compressed results can be plotted immediately. To analyze a new
+run, wait until `general-simulation` shows `Exited (0)` in
+`docker compose ps --all`, then copy the generated files out of its Docker
+volume from the repository root:
 
 ```bash
 mkdir -p "general-simulation/data/Simulation Results"

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Iterable
+import gzip
 import hashlib
 import io
 import re
@@ -34,6 +35,7 @@ MODE_ALIASES = {
 SOURCE_PRIORITIES = {
     "override": 3,
     "filesystem": 2,
+    "bundled": 1,
     "zip": 1,
 }
 FACTOR_COLORS = {
@@ -590,19 +592,24 @@ def _coerce_locators(path_or_locators: str | Path | Iterable[str | Path]) -> lis
 def _iter_text_lines(locator: str) -> Iterable[str]:
     kind, path_text, member = _split_locator(locator)
     if kind == "file":
-        with Path(path_text).open("r", encoding="utf-8", errors="replace") as handle:
+        path = Path(path_text)
+        opener = gzip.open if path.name.lower().endswith(".gz") else Path.open
+        with opener(path, "rt", encoding="utf-8", errors="replace") as handle:
             for line in handle:
                 yield line
         return
 
     archive = zipfile.ZipFile(path_text)
     raw = archive.open(member or "")
-    text = io.TextIOWrapper(raw, encoding="utf-8", errors="replace")
+    decoded = gzip.GzipFile(fileobj=raw) if (member or "").lower().endswith(".gz") else raw
+    text = io.TextIOWrapper(decoded, encoding="utf-8", errors="replace")
     try:
         for line in text:
             yield line
     finally:
         text.close()
+        if decoded is not raw:
+            decoded.close()
         raw.close()
         archive.close()
 
@@ -634,15 +641,14 @@ def _scenario_from_parts(parts: tuple[str, ...]) -> tuple[str, str]:
             episode = part.lower()
             break
     filename = parts[-1] if parts else ""
-    stem = Path(filename).stem.lower()
-    sim_match = re.fullmatch(r"sim(?P<index>\d+)", stem)
-    if sim_match:
+    sim_match = re.fullmatch(r"sim(?P<index>\d+)?\.log(?:\.gz)?", filename.lower())
+    if sim_match and sim_match.group("index"):
         episode = f"episode-{int(sim_match.group('index'))}"
     return scenario, episode
 
 
 def _is_simulation_run_log(filename: str) -> bool:
-    return re.fullmatch(r"sim(?:\d+)?\.log", filename.lower()) is not None
+    return re.fullmatch(r"sim(?:\d+)?\.log(?:\.gz)?", filename.lower()) is not None
 
 
 def _path_mode_hint(parts: tuple[str, ...]) -> str | None:
@@ -683,7 +689,7 @@ def _build_record(
     )
 
 
-def _candidate_sort_key(record: SourceRecord) -> tuple[int, int]:
+def _candidate_sort_key(record: SourceRecord) -> tuple[int, int, int, int]:
     normalized_path = normalize_name(record.display_path)
     mode_specific = int(record.mode in normalized_path)
     path_depth = record.display_path.count("/")
@@ -699,31 +705,40 @@ def discover_logs(repo_root: Path, baseline_overrides: dict[str, Path | str | No
     data_root = repo_root / "data"
     candidates: list[SourceRecord] = []
 
-    for path in sorted((data_root / "Simulation Results").rglob("*.log")):
-        if not _is_simulation_run_log(path.name):
-            continue
-        parts = path.parts
-        scenario_raw, episode = _scenario_from_parts(parts)
-        mode_hint = _path_mode_hint(parts)
-        locator = f"file:{path}"
-        mode, attackers = _read_header(locator)
-        record = _build_record(
-            locator=locator,
-            source_type="filesystem",
-            display_path=str(path.relative_to(repo_root)),
-            scenario_raw=scenario_raw,
-            mode=canonicalize_mode(mode, path_hint=mode_hint),
-            episode=episode,
-            attackers=attackers,
-        )
-        if record is not None:
-            candidates.append(record)
+    def add_filesystem_candidates(search_root: Path, source_type: str) -> int:
+        added = 0
+        for path in sorted(search_root.rglob("sim*.log*")):
+            if not path.is_file() or not _is_simulation_run_log(path.name):
+                continue
+            parts = path.parts
+            scenario_raw, episode = _scenario_from_parts(parts)
+            mode_hint = _path_mode_hint(parts)
+            locator = f"file:{path}"
+            mode, attackers = _read_header(locator)
+            record = _build_record(
+                locator=locator,
+                source_type=source_type,
+                display_path=str(path.relative_to(repo_root)),
+                scenario_raw=scenario_raw,
+                mode=canonicalize_mode(mode, path_hint=mode_hint),
+                episode=episode,
+                attackers=attackers,
+            )
+            if record is not None:
+                candidates.append(record)
+                added += 1
+        return added
+
+    generated_count = add_filesystem_candidates(
+        data_root / "Simulation Results",
+        "filesystem",
+    )
+    if generated_count == 0:
+        add_filesystem_candidates(repo_root / "broker" / "data", "bundled")
 
     for archive_path in sorted(data_root.glob("*.zip")):
         with zipfile.ZipFile(archive_path) as archive:
             for member in sorted(archive.namelist()):
-                if not member.endswith(".log"):
-                    continue
                 if not _is_simulation_run_log(Path(member).name):
                     continue
                 parts = tuple(part for part in member.split("/") if part)
