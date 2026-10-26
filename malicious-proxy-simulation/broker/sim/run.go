@@ -46,20 +46,12 @@ func ProxyPollSimulation(ipc IPCInterface, startTime time.Time) {
 	fmt.Println("Simulation running... Press Ctrl+C to stop")
 	fmt.Println()
 	if sim.debugMode {
-		if len(loop.attackers) > 0 {
-			log.Printf(
-				"Simulation debug mode enabled: step_duration=%s mode=single-loop prober_start=%s event_logs=%t",
-				stepDuration,
-				loop.proberStartAt.Format(time.RFC3339),
-				sim.eventLogs,
-			)
-		} else {
-			log.Printf(
-				"Simulation debug mode enabled: step_duration=%s mode=single-loop event_logs=%t",
-				stepDuration,
-				sim.eventLogs,
-			)
-		}
+		log.Printf(
+			"Simulation debug mode enabled: step_duration=%s mode=single-loop prober_start=%s event_logs=%t",
+			stepDuration,
+			loop.proberStartAt.Format(time.RFC3339),
+			sim.eventLogs,
+		)
 	}
 
 	sigChan := make(chan os.Signal, 1)
@@ -97,18 +89,14 @@ func ProxyPollSimulation(ipc IPCInterface, startTime time.Time) {
 			sim.Stop()
 			if sim.debugMode {
 				loop.logStepSummary(currentTime)
-				if len(loop.attackers) > 0 {
-					loop.logAttackerSummary(currentTime)
-				}
+				loop.logAttackerSummary(currentTime)
 				sim.logDebugSnapshot()
 			}
 			return
 		}
 		if sim.debugMode && currentTime.Sub(lastDebugFake) >= debugEvery {
 			loop.logStepSummary(currentTime)
-			if len(loop.attackers) > 0 {
-				loop.logAttackerSummary(currentTime)
-			}
+			loop.logAttackerSummary(currentTime)
 			sim.logDebugSnapshot()
 			lastDebugFake = currentTime
 		}

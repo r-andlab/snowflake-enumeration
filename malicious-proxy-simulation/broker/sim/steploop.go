@@ -102,7 +102,6 @@ func newStepLoop(sim *ProxyPollSimulator, startTime time.Time, step time.Duratio
 		clientInterval:         defaultClientInterval,
 		clientMaxRetries:       max(1, getEnvInt("SNOWFLAKE_SIM_CLIENT_MAX_RETRIES", defaultClientMaxRetries)),
 		spreadHourlyChurn:      getEnvBool("SNOWFLAKE_SIM_SPREAD_HOURLY_CHURN", true),
-		fixedProxyTargets:      getEnvBool("SNOWFLAKE_SIM_FIXED_PROXY_TARGETS", false),
 		proberInterval:         defaultProberInterval,
 		proberStartAt:          startTime.Add(time.Duration(proberStartHours) * time.Hour),
 		attackers:              make([]*ghostAttacker, 0, attackerCount),
@@ -230,9 +229,6 @@ func (sl *stepLoop) targetCount(proxyType string, hoursElapsed int) int {
 	dailyCounts := targetCountConfig[proxyType]
 	if len(dailyCounts) == 0 {
 		return 0
-	}
-	if sl.fixedProxyTargets {
-		return sl.scaledCount(dailyCounts[0])
 	}
 	base := dailyCounts[hoursElapsed%len(dailyCounts)]
 	return sl.scaledCount(base)
@@ -780,146 +776,78 @@ func (sl *stepLoop) logStepSummary(now time.Time) {
 	proxyPollStandalone := sl.proxyPollsByType["standalone"]
 	proxyPollWebext := sl.proxyPollsByType["webext"]
 	proxyPollIPT := sl.proxyPollsByType["iptproxy"]
+	attackerUnrestricted := sl.attackerPollsByNAT["unrestricted"]
+	attackerRestricted := sl.attackerPollsByNAT["restricted"]
+	attackerUniqueObservedTotal, attackerUniqueObservedByType, attackerObservedByNATAndType := sl.sim.getAttackerObservedCounts()
+	attackerFoundNT := func(nat, proxyType string) int64 {
+		m := attackerObservedByNATAndType[nat]
+		if m == nil {
+			return 0
+		}
+		return m[proxyType]
+	}
 	clientRetryU := sl.clientRetryEventsByNAT["unrestricted"]
 	clientRetryR := sl.clientRetryEventsByNAT["restricted"]
 	clientRetryUnknown := sl.clientRetryEventsByNAT["unknown"]
 	clientBlockedU := sl.clientBlockedRetriesByNAT["unrestricted"]
 	clientBlockedR := sl.clientBlockedRetriesByNAT["restricted"]
 	clientBlockedUnknown := sl.clientBlockedRetriesByNAT["unknown"]
-	if len(sl.attackers) > 0 {
-		attackerUnrestricted := sl.attackerPollsByNAT["unrestricted"]
-		attackerRestricted := sl.attackerPollsByNAT["restricted"]
-		attackerUniqueObservedTotal, attackerUniqueObservedByType, attackerObservedByNATAndType := sl.sim.getAttackerObservedCounts()
-		attackerFoundNT := func(nat, proxyType string) int64 {
-			m := attackerObservedByNATAndType[nat]
-			if m == nil {
-				return 0
-			}
-			return m[proxyType]
-		}
-		log.Printf(
-			"step-summary t=%s clients=%d proxies_total=%d standalone=%d webext=%d iptproxy=%d unique_seen clients=%d proxies_total=%d proxies standalone=%d webext=%d iptproxy=%d connected=%d polls_total client=%d proxy=%d attacker=%d proxy_polls standalone=%d webext=%d iptproxy=%d matches_total=%d matches standalone=%d webext=%d iptproxy=%d blocked_matches_total=%d blocked_matches standalone=%d webext=%d iptproxy=%d blocked_retry_events=%d blocked_retry_attempts=%d blocked_retry_avg_per_attempt=%.3f blocked_retry_attempt_p25=%.3f blocked_retry_attempt_p50=%.3f blocked_retry_attempt_p75=%.3f blocked_retry_attempt_p99=%.3f total_retry_events=%d total_retry_attempts=%d total_retry_avg_per_attempt=%.3f total_retry_attempt_p25=%.3f total_retry_attempt_p50=%.3f total_retry_attempt_p75=%.3f total_retry_attempt_p99=%.3f client_nomatch_total=%d client_nomatch_reasons no_proxies=%d timed_out=%d blocked=%d other=%d retry_limit_hits clients=%d client_respawned_total=%d attacker_polls unrestricted=%d restricted=%d attacker_unique_proxies_total=%d attacker_unique_proxies standalone=%d webext=%d iptproxy=%d",
-			now.Format(time.RFC3339),
-			len(sl.clients),
-			totalProxies,
-			standalone,
-			webext,
-			ipt,
-			uniqueClientsSeen,
-			uniqueProxiesSeen,
-			uniqueStandaloneSeen,
-			uniqueWebextSeen,
-			uniqueIPTSeen,
-			sl.activeConnectionCount(),
-			sl.totalClientPolls,
-			sl.totalProxyPolls,
-			sl.totalProberPolls,
-			proxyPollStandalone,
-			proxyPollWebext,
-			proxyPollIPT,
-			matchesTotal,
-			matchesStandalone,
-			matchesWebext,
-			matchesIPT,
-			blockedTotal,
-			blockedStandalone,
-			blockedWebext,
-			blockedIPT,
-			sl.blockedRetryEvents,
-			blockedRetryAttempts,
-			blockedRetryAvgPerAttempt,
-			blockedRetryP25,
-			blockedRetryP50,
-			blockedRetryP75,
-			blockedRetryP99,
-			sl.totalRetryEvents,
-			totalRetryAttempts,
-			totalRetryAvgPerAttempt,
-			totalRetryP25,
-			totalRetryP50,
-			totalRetryP75,
-			totalRetryP99,
-			sl.clientNoMatches,
-			sl.clientNoMatchByNoPx,
-			sl.clientNoMatchByTO,
-			sl.clientNoMatchByBlock,
-			sl.clientNoMatchByOther,
-			sl.clientRetryLimitHits,
-			sl.clientRespawnedTotal,
-			attackerUnrestricted,
-			attackerRestricted,
-			attackerUniqueObservedTotal,
-			attackerUniqueObservedByType["standalone"],
-			attackerUniqueObservedByType["webext"],
-			attackerUniqueObservedByType["iptproxy"],
-		)
-		log.Printf(
-			"step-summary-attacker-found t=%s attacker_unique_by_nat unrestricted=%d restricted=%d unknown=%d attacker_unique_proxies_by_nat unrestricted_standalone=%d unrestricted_webext=%d unrestricted_iptproxy=%d restricted_standalone=%d restricted_webext=%d restricted_iptproxy=%d unknown_standalone=%d unknown_webext=%d unknown_iptproxy=%d",
-			now.Format(time.RFC3339),
-			attackerFoundNT("unrestricted", "standalone")+attackerFoundNT("unrestricted", "webext")+attackerFoundNT("unrestricted", "iptproxy"),
-			attackerFoundNT("restricted", "standalone")+attackerFoundNT("restricted", "webext")+attackerFoundNT("restricted", "iptproxy"),
-			attackerFoundNT("unknown", "standalone")+attackerFoundNT("unknown", "webext")+attackerFoundNT("unknown", "iptproxy"),
-			attackerFoundNT("unrestricted", "standalone"),
-			attackerFoundNT("unrestricted", "webext"),
-			attackerFoundNT("unrestricted", "iptproxy"),
-			attackerFoundNT("restricted", "standalone"),
-			attackerFoundNT("restricted", "webext"),
-			attackerFoundNT("restricted", "iptproxy"),
-			attackerFoundNT("unknown", "standalone"),
-			attackerFoundNT("unknown", "webext"),
-			attackerFoundNT("unknown", "iptproxy"),
-		)
-	} else {
-		log.Printf(
-			"step-summary t=%s clients=%d proxies_total=%d standalone=%d webext=%d iptproxy=%d unique_seen clients=%d proxies_total=%d proxies standalone=%d webext=%d iptproxy=%d connected=%d polls_total client=%d proxy=%d proxy_polls standalone=%d webext=%d iptproxy=%d matches_total=%d matches standalone=%d webext=%d iptproxy=%d blocked_matches_total=%d blocked_matches standalone=%d webext=%d iptproxy=%d blocked_retry_events=%d blocked_retry_attempts=%d blocked_retry_avg_per_attempt=%.3f blocked_retry_attempt_p25=%.3f blocked_retry_attempt_p50=%.3f blocked_retry_attempt_p75=%.3f blocked_retry_attempt_p99=%.3f total_retry_events=%d total_retry_attempts=%d total_retry_avg_per_attempt=%.3f total_retry_attempt_p25=%.3f total_retry_attempt_p50=%.3f total_retry_attempt_p75=%.3f total_retry_attempt_p99=%.3f client_nomatch_total=%d client_nomatch_reasons no_proxies=%d timed_out=%d blocked=%d other=%d retry_limit_hits clients=%d client_respawned_total=%d",
-			now.Format(time.RFC3339),
-			len(sl.clients),
-			totalProxies,
-			standalone,
-			webext,
-			ipt,
-			uniqueClientsSeen,
-			uniqueProxiesSeen,
-			uniqueStandaloneSeen,
-			uniqueWebextSeen,
-			uniqueIPTSeen,
-			sl.activeConnectionCount(),
-			sl.totalClientPolls,
-			sl.totalProxyPolls,
-			proxyPollStandalone,
-			proxyPollWebext,
-			proxyPollIPT,
-			matchesTotal,
-			matchesStandalone,
-			matchesWebext,
-			matchesIPT,
-			blockedTotal,
-			blockedStandalone,
-			blockedWebext,
-			blockedIPT,
-			sl.blockedRetryEvents,
-			blockedRetryAttempts,
-			blockedRetryAvgPerAttempt,
-			blockedRetryP25,
-			blockedRetryP50,
-			blockedRetryP75,
-			blockedRetryP99,
-			sl.totalRetryEvents,
-			totalRetryAttempts,
-			totalRetryAvgPerAttempt,
-			totalRetryP25,
-			totalRetryP50,
-			totalRetryP75,
-			totalRetryP99,
-			sl.clientNoMatches,
-			sl.clientNoMatchByNoPx,
-			sl.clientNoMatchByTO,
-			sl.clientNoMatchByBlock,
-			sl.clientNoMatchByOther,
-			sl.clientRetryLimitHits,
-			sl.clientRespawnedTotal,
-		)
-	}
+	log.Printf(
+		"step-summary t=%s clients=%d proxies_total=%d standalone=%d webext=%d iptproxy=%d unique_seen clients=%d proxies_total=%d proxies standalone=%d webext=%d iptproxy=%d connected=%d polls_total client=%d proxy=%d attacker=%d proxy_polls standalone=%d webext=%d iptproxy=%d matches_total=%d matches standalone=%d webext=%d iptproxy=%d blocked_matches_total=%d blocked_matches standalone=%d webext=%d iptproxy=%d blocked_retry_events=%d blocked_retry_attempts=%d blocked_retry_avg_per_attempt=%.3f blocked_retry_attempt_p25=%.3f blocked_retry_attempt_p50=%.3f blocked_retry_attempt_p75=%.3f blocked_retry_attempt_p99=%.3f total_retry_events=%d total_retry_attempts=%d total_retry_avg_per_attempt=%.3f total_retry_attempt_p25=%.3f total_retry_attempt_p50=%.3f total_retry_attempt_p75=%.3f total_retry_attempt_p99=%.3f client_nomatch_total=%d client_nomatch_reasons no_proxies=%d timed_out=%d blocked=%d other=%d retry_limit_hits clients=%d client_respawned_total=%d attacker_polls unrestricted=%d restricted=%d attacker_unique_proxies_total=%d attacker_unique_proxies standalone=%d webext=%d iptproxy=%d",
+		now.Format(time.RFC3339),
+		len(sl.clients),
+		totalProxies,
+		standalone,
+		webext,
+		ipt,
+		uniqueClientsSeen,
+		uniqueProxiesSeen,
+		uniqueStandaloneSeen,
+		uniqueWebextSeen,
+		uniqueIPTSeen,
+		sl.activeConnectionCount(),
+		sl.totalClientPolls,
+		sl.totalProxyPolls,
+		sl.totalProberPolls,
+		proxyPollStandalone,
+		proxyPollWebext,
+		proxyPollIPT,
+		matchesTotal,
+		matchesStandalone,
+		matchesWebext,
+		matchesIPT,
+		blockedTotal,
+		blockedStandalone,
+		blockedWebext,
+		blockedIPT,
+		sl.blockedRetryEvents,
+		blockedRetryAttempts,
+		blockedRetryAvgPerAttempt,
+		blockedRetryP25,
+		blockedRetryP50,
+		blockedRetryP75,
+		blockedRetryP99,
+		sl.totalRetryEvents,
+		totalRetryAttempts,
+		totalRetryAvgPerAttempt,
+		totalRetryP25,
+		totalRetryP50,
+		totalRetryP75,
+		totalRetryP99,
+		sl.clientNoMatches,
+		sl.clientNoMatchByNoPx,
+		sl.clientNoMatchByTO,
+		sl.clientNoMatchByBlock,
+		sl.clientNoMatchByOther,
+		sl.clientRetryLimitHits,
+		sl.clientRespawnedTotal,
+		attackerUnrestricted,
+		attackerRestricted,
+		attackerUniqueObservedTotal,
+		attackerUniqueObservedByType["standalone"],
+		attackerUniqueObservedByType["webext"],
+		attackerUniqueObservedByType["iptproxy"],
+	)
 	log.Printf(
 		"step-summary-client-nat t=%s client_retry_events unrestricted=%d restricted=%d unknown=%d client_blocked_retries unrestricted=%d restricted=%d unknown=%d",
 		now.Format(time.RFC3339),
@@ -930,11 +858,27 @@ func (sl *stepLoop) logStepSummary(now time.Time) {
 		clientBlockedR,
 		clientBlockedUnknown,
 	)
+	log.Printf(
+		"step-summary-attacker-found t=%s attacker_unique_by_nat unrestricted=%d restricted=%d unknown=%d attacker_unique_proxies_by_nat unrestricted_standalone=%d unrestricted_webext=%d unrestricted_iptproxy=%d restricted_standalone=%d restricted_webext=%d restricted_iptproxy=%d unknown_standalone=%d unknown_webext=%d unknown_iptproxy=%d",
+		now.Format(time.RFC3339),
+		attackerFoundNT("unrestricted", "standalone")+attackerFoundNT("unrestricted", "webext")+attackerFoundNT("unrestricted", "iptproxy"),
+		attackerFoundNT("restricted", "standalone")+attackerFoundNT("restricted", "webext")+attackerFoundNT("restricted", "iptproxy"),
+		attackerFoundNT("unknown", "standalone")+attackerFoundNT("unknown", "webext")+attackerFoundNT("unknown", "iptproxy"),
+		attackerFoundNT("unrestricted", "standalone"),
+		attackerFoundNT("unrestricted", "webext"),
+		attackerFoundNT("unrestricted", "iptproxy"),
+		attackerFoundNT("restricted", "standalone"),
+		attackerFoundNT("restricted", "webext"),
+		attackerFoundNT("restricted", "iptproxy"),
+		attackerFoundNT("unknown", "standalone"),
+		attackerFoundNT("unknown", "webext"),
+		attackerFoundNT("unknown", "iptproxy"),
+	)
 	sl.logBrokerSnowflakeHeapSummary(now)
 }
 
-// logBrokerSnowflakeHeapSummary logs real broker SnowflakeHeap sizes (broker/snowflake-heap.go). With
-// probers enabled, it also logs how many parseable heap entries have not yet been observed by any attacker.
+// logBrokerSnowflakeHeapSummary logs real broker SnowflakeHeap sizes (broker/snowflake-heap.go) and, among
+// heap session IDs that parse as sim proxy keys, the share not yet in global attacker enumeration.
 func (sl *stepLoop) logBrokerSnowflakeHeapSummary(now time.Time) {
 	u, r, ids := sl.sim.ipc.SnowflakeHeapSnapshot()
 	parseable := 0
@@ -945,20 +889,9 @@ func (sl *stepLoop) logBrokerSnowflakeHeapSummary(now time.Time) {
 			continue
 		}
 		parseable++
-		if len(sl.attackers) > 0 && !sl.sim.AttackerHasObservedProxy(proxyPollKey(pt, pid)) {
+		if !sl.sim.AttackerHasObservedProxy(proxyPollKey(pt, pid)) {
 			neverSeen++
 		}
-	}
-	if len(sl.attackers) == 0 {
-		log.Printf(
-			"step-summary-broker-heaps t=%s snowflake_heap_unrestricted=%d snowflake_heap_restricted=%d snowflake_heap_total=%d snowflake_heap_parseable=%d",
-			now.Format(time.RFC3339),
-			u,
-			r,
-			u+r,
-			parseable,
-		)
-		return
 	}
 	var pct float64
 	if parseable > 0 {
@@ -976,31 +909,21 @@ func (sl *stepLoop) logBrokerSnowflakeHeapSummary(now time.Time) {
 	)
 }
 
-// attackModeLogLabel is for logs: when there are no probers, attack mode is inert — report "none"
-// instead of "enumeration-only" / "blocking" from SNOWFLAKE_SIM_ATTACK_MODE.
-func (sl *stepLoop) attackModeLogLabel() string {
-	if len(sl.attackers) == 0 {
-		return "none"
-	}
-	return sl.sim.attackModeLabel()
-}
-
 func (sl *stepLoop) logAttackerSummary(now time.Time) {
-	if len(sl.attackers) == 0 {
-		return
-	}
 	nextPoll := ""
-	soonest := sl.attackers[0].nextPollAt
-	for _, attacker := range sl.attackers[1:] {
-		if attacker.nextPollAt.Before(soonest) {
-			soonest = attacker.nextPollAt
+	if len(sl.attackers) > 0 {
+		soonest := sl.attackers[0].nextPollAt
+		for _, attacker := range sl.attackers[1:] {
+			if attacker.nextPollAt.Before(soonest) {
+				soonest = attacker.nextPollAt
+			}
 		}
+		nextPoll = soonest.Format(time.RFC3339)
 	}
-	nextPoll = soonest.Format(time.RFC3339)
 	log.Printf(
 		"attacker-summary t=%s mode=%s attackers=%d total_probes=%d unrestricted=%d restricted=%d next_poll=%s",
 		now.Format(time.RFC3339),
-		sl.attackModeLogLabel(),
+		sl.sim.attackModeLabel(),
 		len(sl.attackers),
 		sl.totalProberPolls,
 		sl.attackerPollsByNAT["unrestricted"],

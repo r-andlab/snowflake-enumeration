@@ -13,8 +13,8 @@ func (sl *stepLoop) bootstrap() {
 	log.Printf("Initializing step-loop entities: standalone=%d webext=%d iptproxy=%d clients=%d", standaloneInit, webextInit, iptInit, sl.clientTargetCount)
 	log.Printf("Proxy poll dispatch mode: randomized (seed=%d)", sl.pollRandSeed)
 	log.Printf(
-		"Simulation config: attack_mode=%s attackers=%d prober_interval=%s standalone_poll=%s webext_poll=%s iptproxy_poll=%s poll_jitter_pct=%.2f churn_rate_pct=%.3f standalone_churn_factor=%.3f spread_hourly_churn=%t fixed_proxy_targets=%t proxy_count_scale=%.3f nat_unrestricted standalone=%.3f web_ipt=%.3f matched_proxy_wait=%s matched_client_wait=%s connection_mean_wait=%s connection_stddev_wait=%s max_retries client=%d client_target=%d client_replenish_hourly=%t client_immediate_respawn=%t client_poll_jitter=%s client_spawn_spread=%s step_settle_rounds=%d",
-		sl.attackModeLogLabel(),
+		"Simulation config: attack_mode=%s attackers=%d prober_interval=%s standalone_poll=%s webext_poll=%s iptproxy_poll=%s poll_jitter_pct=%.2f churn_rate_pct=%.3f standalone_churn_factor=%.3f spread_hourly_churn=%t proxy_count_scale=%.3f nat_unrestricted standalone=%.3f web_ipt=%.3f matched_proxy_wait=%s matched_client_wait=%s connection_mean_wait=%s connection_stddev_wait=%s max_retries client=%d client_target=%d client_replenish_hourly=%t client_immediate_respawn=%t client_poll_jitter=%s client_spawn_spread=%s step_settle_rounds=%d",
+		sl.sim.attackModeLabel(),
 		len(sl.attackers),
 		sl.proberInterval,
 		sl.standalonePollInterval,
@@ -24,7 +24,6 @@ func (sl *stepLoop) bootstrap() {
 		sl.churnRateBase*100.0,
 		defaultStandaloneChurnK,
 		sl.spreadHourlyChurn,
-		sl.fixedProxyTargets,
 		sl.proxyCountScale,
 		sl.standaloneUnrestricted,
 		sl.webIPTUnrestricted,
@@ -72,8 +71,6 @@ func (sl *stepLoop) addMaliciousProxies() {
 	}
 	pt := "standalone"
 	interval := sl.standalonePollInterval
-	// Delay malicious activation to +24h simulated time so they do not participate during day-0 warmup.
-	maliciousStartAt := sl.startTime.Add(24 * time.Hour)
 
 	addOne := func(nat string) int {
 		id := sl.nextProxyID[pt]
@@ -83,7 +80,7 @@ func (sl *stepLoop) addMaliciousProxies() {
 			proxyType:     pt,
 			standaloneNAT: nat,
 			pollInterval:  interval,
-			nextPollAt:    maliciousStartAt,
+			nextPollAt:    sl.startTime,
 			malicious:     true,
 		}
 		sl.proxies[pt][id] = gp
@@ -96,10 +93,9 @@ func (sl *stepLoop) addMaliciousProxies() {
 	sl.maliciousProxyUnrestrictedID = addOne("unrestricted")
 	sl.maliciousProxyRestrictedID = addOne("restricted")
 	log.Printf(
-		"malicious proxies: enabled standalone-%d (unrestricted) and standalone-%d (restricted); start_at=%s, poll every simulated step after start, immediate disconnect on match",
+		"malicious proxies: enabled standalone-%d (unrestricted) and standalone-%d (restricted); poll every simulated step, immediate disconnect on match",
 		sl.maliciousProxyUnrestrictedID,
 		sl.maliciousProxyRestrictedID,
-		maliciousStartAt.Format(time.RFC3339),
 	)
 }
 

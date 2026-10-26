@@ -191,14 +191,14 @@ func (sl *stepLoop) drainProxyResults(now time.Time) int {
 			sl.recordProxyPolledInWindow(result.proxyType, result.proxyID)
 			if result.err != nil {
 				if sl.isMaliciousProxy(result.proxyType, result.proxyID) {
-					p.nextPollAt = now.Add(sl.jitteredInterval(result.pollInterval))
+					p.nextPollAt = now
 				} else {
 					p.nextPollAt = now.Add(sl.jitteredInterval(result.pollInterval))
 				}
 				continue
 			}
 			if sl.isMaliciousProxy(result.proxyType, result.proxyID) {
-				p.nextPollAt = now.Add(sl.jitteredInterval(result.pollInterval))
+				p.nextPollAt = now
 				continue
 			}
 			if result.proxyType == "standalone" {

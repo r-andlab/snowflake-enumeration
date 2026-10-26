@@ -103,7 +103,6 @@ type stepLoop struct {
 	clientInterval         time.Duration
 	clientMaxRetries       int
 	spreadHourlyChurn      bool
-	fixedProxyTargets      bool // if true, keep proxy hourly target fixed at hour-0 values
 	proberInterval         time.Duration
 	proberStartAt          time.Time
 	attackers              []*ghostAttacker

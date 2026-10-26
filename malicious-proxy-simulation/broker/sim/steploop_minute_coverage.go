@@ -92,11 +92,6 @@ func (sl *stepLoop) flushAndClearMinuteProxyPollSet(now time.Time) {
 
 	set := sl.minuteProxyPollSet
 	sl.minuteProxyPollSet = make(map[string]struct{})
-	if len(sl.attackers) == 0 {
-		sl.flushMaliciousProxyMinute(ts)
-		return
-	}
-
 	n := len(set)
 	if n == 0 {
 		log.Printf(

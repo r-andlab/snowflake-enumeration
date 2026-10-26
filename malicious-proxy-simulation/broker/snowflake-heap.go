@@ -16,7 +16,6 @@ type Snowflake struct {
 	answerChannel chan string
 	clients       int
 	index         int
-	enqueSeq      int
 }
 
 // Implements heap.Interface, and holds Snowflakes.
@@ -26,7 +25,7 @@ func (sh SnowflakeHeap) Len() int { return len(sh) }
 
 func (sh SnowflakeHeap) Less(i, j int) bool {
 	// Snowflakes serving less clients should sort earlier.
-	return sh[i].enqueSeq < sh[j].enqueSeq
+	return sh[i].clients < sh[j].clients
 }
 
 func (sh SnowflakeHeap) Swap(i, j int) {

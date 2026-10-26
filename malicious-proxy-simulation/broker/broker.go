@@ -54,7 +54,6 @@ type BrokerContext struct {
 	removalStatsMu     sync.Mutex
 	lastPrintedMinute  time.Time
 	removalsThisMinute int
-	globalEnqueSeq     int
 }
 
 func (ctx *BrokerContext) GetBridgeInfo(fingerprint bridgefingerprint.Fingerprint) (BridgeInfo, error) {
@@ -187,8 +186,6 @@ func (ctx *BrokerContext) AddSnowflake(id string, proxyType string, natType stri
 	snowflake.offerChannel = make(chan *ClientOffer, 1)
 	snowflake.answerChannel = make(chan string)
 	ctx.snowflakeLock.Lock()
-	snowflake.enqueSeq = ctx.globalEnqueSeq
-	ctx.globalEnqueSeq++
 	if natType == NATUnrestricted {
 		heap.Push(ctx.snowflakes, snowflake)
 	} else {
