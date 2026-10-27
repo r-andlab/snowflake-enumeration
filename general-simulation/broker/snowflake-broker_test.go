@@ -172,9 +172,9 @@ client-sqs-ips
 				}()
 				offer := <-snowflake.offerChannel
 				So(offer.sdp, ShouldResemble, []byte(sdp))
-				snowflake.answerChannel <- "test answer"
+				snowflake.answerChannel <- "test answer+sidtest"
 				<-done
-				So(w.Body.String(), ShouldEqual, `{"answer":"test answer"}`)
+				So(w.Body.String(), ShouldEqual, `{"answer":"test answer","sid":"test"}`)
 				So(w.Code, ShouldEqual, http.StatusOK)
 
 				// Ensure that match is correctly recorded in metrics
@@ -211,10 +211,10 @@ client-sqs-ips
 					So(false, ShouldBeTrue)
 					return
 				}
-				snowflake.answerChannel <- "test answer"
+				snowflake.answerChannel <- "test answer+sidtest"
 
 				<-done
-				So(w.Body.String(), ShouldEqual, `{"answer":"test answer"}`)
+				So(w.Body.String(), ShouldEqual, `{"answer":"test answer","sid":"test"}`)
 			})
 
 			Convey("Times out when no proxy responds.", func() {
@@ -275,7 +275,7 @@ client-sqs-ips
 				}()
 				offer := <-snowflake.offerChannel
 				So(offer.sdp, ShouldResemble, []byte(fmt.Sprintf(`{%v}`, sdp)))
-				snowflake.answerChannel <- "fake answer"
+				snowflake.answerChannel <- "fake answer+sidfake"
 				<-done
 				So(w.Body.String(), ShouldEqual, "fake answer")
 				So(w.Code, ShouldEqual, http.StatusOK)
@@ -363,11 +363,11 @@ client-sqs-ips
 				}()
 				offer := <-snowflake.offerChannel
 				So(offer.sdp, ShouldResemble, []byte("fake"))
-				snowflake.answerChannel <- "fake answer"
+				snowflake.answerChannel <- "fake answer+sidfake"
 				<-done
 				body, err := decodeAMPArmorToString(w.Body)
 				So(err, ShouldBeNil)
-				So(body, ShouldEqual, `{"answer":"fake answer"}`)
+				So(body, ShouldEqual, `{"answer":"fake answer","sid":"fake"}`)
 				So(w.Code, ShouldEqual, http.StatusOK)
 
 				// Ensure that match is correctly recorded in metrics
@@ -495,7 +495,7 @@ client-sqs-ips
 				answer := <-s.answerChannel
 				<-done
 				So(w.Code, ShouldEqual, http.StatusOK)
-				So(answer, ShouldResemble, sdp)
+				So(answer, ShouldResemble, sdp+"+sid"+sid)
 			})
 
 			Convey("with client gone status if the proxy ID is not recognized", func() {
@@ -632,7 +632,7 @@ client-sqs-ips
 
 			<-done
 			So(wC.Code, ShouldEqual, http.StatusOK)
-			So(wC.Body.String(), ShouldEqual, fmt.Sprintf(`{"answer":%#q}`, sdp))
+			So(wC.Body.String(), ShouldEqual, fmt.Sprintf(`{"answer":%#q,"sid":%q}`, sdp, sid))
 		})
 	})
 }
@@ -853,7 +853,7 @@ snowflake-ips-nat-unknown 0
 			}()
 			offer := <-snowflake.offerChannel
 			So(offer.sdp, ShouldResemble, []byte(sdp))
-			snowflake.answerChannel <- "fake answer"
+			snowflake.answerChannel <- "fake answer+sidfake"
 			<-done
 
 			ctx.metrics.printMetrics()

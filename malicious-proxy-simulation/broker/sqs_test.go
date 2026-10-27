@@ -146,7 +146,7 @@ func TestSQS(t *testing.T) {
 								snowflake := ipcCtx.AddSnowflake("fake", "", NATUnrestricted, 0)
 								go func(c C) {
 									<-snowflake.offerChannel
-									snowflake.answerChannel <- "fake answer"
+									snowflake.answerChannel <- "fake answer+sidfake"
 								}(c)
 								return validMessage, nil
 							}
@@ -159,7 +159,7 @@ func TestSQS(t *testing.T) {
 					mockSQSClient.EXPECT().DeleteMessage(gomock.Any(), gomock.Any()).AnyTimes()
 					mockSQSClient.EXPECT().SendMessage(gomock.Any(), gomock.Any()).Times(1).DoAndReturn(
 						func(ctx context.Context, input *sqs.SendMessageInput, optFns ...func(*sqs.Options)) (*sqs.SendMessageOutput, error) {
-							c.So(input.MessageBody, ShouldEqual, aws.String("{\"answer\":\"fake answer\"}"))
+							c.So(input.MessageBody, ShouldEqual, aws.String("{\"answer\":\"fake answer\",\"sid\":\"fake\"}"))
 							// Ensure that match is correctly recorded in metrics
 							ipcCtx.metrics.printMetrics()
 							c.So(buf.String(), ShouldContainSubstring, `client-denied-count 0
