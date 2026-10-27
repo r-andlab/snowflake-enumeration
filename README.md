@@ -7,7 +7,7 @@ docker compose --profile live up --build -d
 ```
 
 ## Special Notes
-1. For simulation, the default sim days is 5 days, which needs around 2 days on a 12-core 70G server. 
+1. For simulation, the default sim days is 5 days, which needs around  1 hour on a 12-core 70G server. 
 2. Please modify the `SIM_DAYS` at `compose.yaml` to simulate as long as possible (at least 5 days) to reproduce the results
 3. For real-world docker, we recommend running for at least 5 days to reproduce the results.
 
