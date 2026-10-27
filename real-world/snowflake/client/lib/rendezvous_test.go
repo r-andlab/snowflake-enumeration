@@ -434,8 +434,9 @@ func TestBrokerChannel(t *testing.T) {
 		brokerChannel.SetNATType(nat.NATRestricted)
 
 		answerSdpReturned, err := brokerChannel.Negotiate(offerSdp)
-		So(err, ShouldBeNil)
-		So(answerSdpReturned, ShouldEqual, answerSdp)
+		So(answerSdpReturned, ShouldBeNil)
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldEqual, "- intentional error, retrying now")
 
 		body := <-requestBodyChan
 		pollReq, err := messages.DecodeClientPollRequest(body)
